@@ -1,0 +1,23 @@
+# Context-Free Grammar of the Code game
+
+Start
+	Statement
+Statement
+	block StatementList
+	IfStatement
+	
+StatementList
+	Statement
+	StatementList Statement
+	
+IfStatement
+	if ConditionalExpr
+
+Expr
+	ArithExpr
+	ConditionalExpr
+	
+ConditionalExpr 
+	
+ArithExpr
+	

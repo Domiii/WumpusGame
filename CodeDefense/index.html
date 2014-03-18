@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- saved from url=(0021)http://www.google.com -->
+ 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Code Defense v.0000001</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+  <link rel="stylesheet" href="http://layout.jquery-dev.net/lib/css/layout-default-latest.css" />
+  <style>
+	ul { list-style-type: none; margin: 0; padding: 0; width: 100%; }
+	ul li { list-style-type: none; margin: 0; padding: 0; cursor: default; position: absolute; }
+  </style>
+
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+  <script src="http://layout.jquery-dev.net/lib/js/jquery.layout-latest.js"></script>
+  <script type="text/javascript" src="Box2D.js"></script>
+  
+  <script src="util.js"></script>
+  <script src="CodeDefense/CodeDefense.js"></script>
+  <script src="CodeDefense/CodeDefenseEditor.js"></script>
+  <script>
+	// Configuration
+	
+	
+	// place viewer at center, on resize
+	var onResize = function()
+	{
+		$('#code-defense').first().centerWidth();			// center viewer on page
+		
+		// !!! this is a hack to work around retarded issues with buttons not layouting correctly
+		var buttons = $("button");
+		buttons.each(function(i) { $(this).text($(this).text()) });
+	};
+	
+	$( window ).resize(onResize);
+	
+	$( document ).ready( function() {
+		var game = loadCodeDefense($('#code-defense-game')[0]);
+		loadCodeDefenseEditor(game, $('#code-defense-editor')[0]);
+	});
+  </script>
+</head>
+<body style="width:100%;height=100%;">
+	<!-- Viewer -->
+	<canvas id="code-defense-game" class="" style="background-color:#CCCCCC; float: left" width="600px" height="400px">
+		
+	</canvas>
+	
+	<div id="code-defense-editor" style="background-color:#5555CC; float: left" width="600px" height="400px">
+		<div id="panel" style="background-color:#AAAAAA; float:left; width:400px; height:400px">
+			
+		</div>
+		<div id="lists" style="float:left">
+			<ul id="variables">
+				<li draggable="true" class="ui-state-default">Item 1</li>
+			</ul>
+		</div>
+	</div>
+</body>
+</html>

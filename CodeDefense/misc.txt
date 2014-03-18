@@ -1,0 +1,4 @@
+misc.txt
+
+- Psychological Aspects
+	- Clearly distinguish between configuration upgrades and functional upgrades
