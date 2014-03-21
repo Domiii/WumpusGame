@@ -4,29 +4,45 @@
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<title>SearchGame v. 0.1</title>
     
+    <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/defaultstyle.css">
+    
+    <!-- Some useful utilities -->
+    <script src="js/Squishy.js" type="text/javascript" charset="utf-8"/>
+    <script src="js/Util.js" type="text/javascript" charset="utf-8"/>
+    <script src="js/DOMUtil.js" type="text/javascript" charset="utf-8"/>
+    
+    <!-- ACE Script Editor -->
+    <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    
+    <!-- Google Caja ECMA Interpretor -->
+    <script src="js/lib/caja.js" type="text/javascript" charset="utf-8"></script>
+    
+    <!-- Game files -->
+    <script src="js/Script.js" type="text/javascript" charset="utf-8"></script>
 </head>
 
 
 
 <body>
-    <!-- <div id="script-editor">
+    <div id="script-editor">
         function foo(items) {
             var x = "All this is syntax highlighted";
             return x;
         }
-    </div> -->
+    </div>
 	<div id="editor">
 		<div id="grid">
 		hi
 		</div>
 	</div>
-    <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
     <script>
-		// initialize the script editor
-        //var scriptEditor = ace.edit("script-editor");
-        //scriptEditor.setTheme("ace/theme/monokai");
-        //scriptEditor.getSession().setMode("ace/mode/javascript");
+        // set global variable
+        global = {};
+        var scriptEditorEl = document.getElementById("script-editor");
+        squishy.assert(scriptEditorEl, "script-editor is not defined in HTML");
+        
+        
     </script>
 </body>
 
