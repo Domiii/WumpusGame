@@ -1,7 +1,43 @@
-#editor {
+#script-editor {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
+}
+
+.tile {
+    padding: 2px;
+    border-style: solid;
+    border-width: 1px;
+}
+
+/* 
+ * Tile styles by tile types.
+ * NOTE: Currently unused
+ */
+
+.tile_wumpus {
+     
+}
+
+.tile_pit {
+}
+
+.tile_gold {
+}
+
+.tile_bats {
+}
+
+.tile_stench {
+}
+
+.tile_breeze {
+}
+
+.tile_glitter {
+}
+
+.tile_flapping {
 }

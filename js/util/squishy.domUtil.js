@@ -1,3 +1,4 @@
+/*jslint node: true */
 "use strict";
 
 /**
@@ -8,7 +9,7 @@
 
 
 // ##############################################################################################################
-// Special rendering tricks
+// Line drawing
 
 /**
  * Adds a new div, representing a line from from to to, to the given container.
@@ -28,10 +29,6 @@ squishy.drawLine = function(container, from, to, color, thickness) {
     // compute counter-clockwise angle from the positive x-axis (in radians)
     var angle = Math.atan2(by-ay, bx-ax);
     
-    // convert to degrees
-    angle=angle*180/Math.PI;
-    //console.log(color + " -- angle: " + angle);
-    
     var length=Math.sqrt((ax-bx)*(ax-bx)+(ay-by)*(ay-by));
     var div = document.createElement("div");
     div.style.cssText = 
@@ -45,25 +42,24 @@ squishy.drawLine = function(container, from, to, color, thickness) {
         div.style.cssText += "height:" + thickness + "px;";
     }
     
-	// make sure, it stays at the correct origin
+	// translate to origin
 	squishy.transformOrigin(div);
 	
-    div.style.cssText +=
-    	"transform:rotate(" + angle + "deg);" +
-    	"-ms-transform:rotate(" + angle + "deg);" +
-    	"-moz-transform:rotate(" + angle + "deg);" +
-    	"-webkit-transform:rotate(" + angle  + "deg);" + 
-    	"-o-transform:rotate(" + angle + "deg);";
-    	
-    	
+    // rotate
+    squishy.transformRotation(div, angle);
+
+    // add arrow to container
     container.appendChild(div);
    	return div;
 };
+
  
 // ##############################################################################################################
-// Transforms
+// Transformations
 
 /**
+ * Scales an element in size. 
+ *
  * @see http://www.w3schools.com/css/css3_2dtransforms.asp
  */
 squishy.transformScale = function(targetEl, factorX, factorY) {
@@ -78,6 +74,34 @@ squishy.transformScale = function(targetEl, factorX, factorY) {
 };
 
 /**
+ * Sets an element's rotational angle.
+ * NOTE: In order to make this work correctly, you might have to first translate the element's origin into its context's origin by calling transformOrigin(targetEl) first.
+ *
+ * @param {Element} targetEl
+ * @param {Number} angle
+ * @param {String=} angleUnits The units of the angle. That is either "rad" or "deg" ("rad" is the default).
+ * @see http://www.w3schools.com/css/css3_2dtransforms.asp
+ */
+squishy.transformRotation = function(targetEl, angle, angleUnits) {
+	squishy.transformOrigin(targetEl);
+    
+    angleUnits = angleUnits || "rad";
+	var angleString = angle + angleUnits;
+    
+    // create browser-independent CSS style
+    fullCSSString =
+    	"transform:rotate(" + angleString + ");" +
+    	"-ms-transform:rotate(" + angleString + ");" +
+    	"-moz-transform:rotate(" + angleString + ");" +
+    	"-webkit-transform:rotate(" + angleString  + ");" + 
+    	"-o-transform:rotate(" + angleString + ");";
+    
+    targetEl.style.cssText += fullCSSString;
+};
+
+/**
+ * Translates an element's position. 
+ *
  * @see http://www.w3schools.com/css/css3_2dtransforms.asp
  */
 squishy.transformOrigin = function(targetEl, originX, originY) {
@@ -92,9 +116,11 @@ squishy.transformOrigin = function(targetEl, originX, originY) {
     targetEl.style.cssText += fullCSSString;
 };
  
+// TODO: Add squishy.transformRotate function
+
 
 // ##############################################################################################################
-// Text
+// Text DOM
 
 /**
  * Appends a new text node to the given target Element.
@@ -104,6 +130,24 @@ squishy.transformOrigin = function(targetEl, originX, originY) {
  */
 squishy.appendText = function(element, text) {
     element.appendChild(document.createTextNode(text));
+};
+
+
+// ##############################################################################################################
+// DOM selectors
+
+/**
+ * Returns the given element or dies with the given message
+ *
+ * @param {String} elementName
+ * @param {String=} dieMessage
+ * @param {Element=} root The selection root. Default = document.
+ */
+squishy.getElementByIdOrDie = function(elementId, dieMessage, root) {
+    var root = root || document;
+    var el = root.getElementById(elementId);
+    squishy.assert(el, dieMessage || "Could not find element with id = " + elementId);
+    return el;
 };
 
  
@@ -146,16 +190,18 @@ squishy.getRelativeEventCoordinates = function(evt, target) {
 };
 
 /**
- * Check whether touch functionality is supported.
+ * Check whether touch functionality is supported in DOM.
+ *
+ * @see https://coderwall.com/p/egbgdw
  */
-squishy.isTouchDevice = function() {
+squishy.domSupportsTouch = function() {
 	return 'ontouchstart' in window || 'msmaxtouchpoints' in window.navigator;
 };
 
 /**
  * Triggers the given arguments on click or on touchend.
  */
-squishy.onClick = function(element) {
+squishy.onClick = function(element, _callbackArgs) {
 	// copy arguments
 	var callArgs = squishy.createArray(arguments.length-1);
 	for (var i = 1; i < arguments.length; ++i) {
@@ -166,18 +212,19 @@ squishy.onClick = function(element) {
 	var clickArgs = ["click"].concat(callArgs);
 	element.addEventListener.apply(element, clickArgs);
 	
-	if (squishy.isTouchDevice()) {
+	if (squishy.domSupportsTouch()) {
 		// add touch event
 		var touchArgs = ["touchend"].concat(callArgs);
 		element.addEventListener.apply(element, touchArgs);
 	}
 };
 
+
 // ##############################################################################################################
 // String handling & rendering
 
 /**
- * Returns only text 
+ * Returns inner text of the given element, without surrounding DOM.
  * 
  * @param element The DOM element to get the given text from.
  * 
@@ -278,6 +325,7 @@ squishy.addBackgroundImage = function(elem, imgSrc) {
     elem.appendChild(img);
 };
 
+
 // ##############################################################################################################
 // DOM initialization
 
@@ -304,8 +352,9 @@ squishy.addBackgroundImage = function(elem, imgSrc) {
 //     //   })
 // };
 
+
 // ##############################################################################################################
-// CSS pretty stuff
+// CSS 3.0 capabilities
 
 /**
  * Adds shadow to the given element.
@@ -334,8 +383,7 @@ squishy.addShadow = function(targetEl, thicknessPx, color, blurPx, spreadPx) {
 // JQuery
 
 // add some utilities to jQuery
-if (window.jQuery)
-{
+if (jQuery) {
     $( document ).ready(function() {
         // add centering functionality to jQuery components
         // see: http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file

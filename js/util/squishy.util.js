@@ -1,13 +1,13 @@
 /*jslint node: true */
 "use strict";
 
-// ##############################################################################################################
-// Debug stuff
 
+// ##############################################################################################################
+// Debugging
 
 /**
  * Returns a string identifying the caller of the caller of this function.
- * Only works on English locale.
+ * TODO: Only works in English locale. Make it work with all locales.
  */
 squishy.getCallerInfo = function() {
     try { throw new Error(''); } catch (err) {
@@ -33,7 +33,7 @@ squishy.assert = function(stmt, msg) {
 };
 
 // ##############################################################################################################
-// File path stuff
+// File paths
 
 /**
  * Concats two partial paths with a "/".
@@ -198,6 +198,28 @@ String.prototype.startsWith = function(prefix) {
 String.prototype.endsWith = function(suffix) {
     return this.substring(this.length - suffix.length, this.length) === suffix;
 };
+
+
+
+// ##############################################################################################################
+// Flags & Enums
+
+/**
+ * Adds the given flag to the current set of flags and returns the result.
+ * This is the equivalent of setting a bit in a number to 1.
+ */
+squishy.setFlag = function(flags, newFlag) {
+    return flags | newFlag;
+};
+
+/**
+ * Removes the given flag from the current set of flags and returns the result.
+ * This is the equivalent of setting a bit in a number to 0.
+ */
+squishy.removeFlag = function(flags, oldFlag) {
+    return flags & ~oldFlag;
+};
+
 
 
 // ##############################################################################################################
