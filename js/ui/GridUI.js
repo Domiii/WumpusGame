@@ -17,50 +17,53 @@
 wumpusGame.makeGridUI = function(gameUI, config) {
 	// sanity checks
     squishy.assert(gameUI, "gameUI is not defined.");
-    squishy.assert(config.grid, "config.grid is not defined.");
+    squishy.assert(gameUI.game.grid, "gameUI.game.grid is not defined.");
     squishy.assert(config.gridEl, "config.gridEl is not defined.");
     squishy.assert(config.tileElTemplate, "config.tileElTemplate is not defined.");
     squishy.assert(config.gridMinSize, "config.gridMinSize is not defined.");
     squishy.assert(config.tileMinSize, "config.tileMinSize is not defined.");
     
-    var grid = config.grid;
-    var gridUI = config.gridEl;
-    
-    // shallow-copy config options into the grid element.
-    config.clone(false, gridUI);
-    
-    // set position of tile elements to absolute
-    gridUI.css({position : "absolute"});
-    
-    
-    // #################################################################################
-    // GridUI functions
-    
-    /**
-     * Compute tile width and height.
-     */
-    gridUI.getTileSize = function(size) {
-        var w = this.gridMinSize[0] / grid.width;
-        var h = this.gridMinSize[1] / grid.height;
-        
-        size[0] = Math.min(w, this.tileMinSize[0]);
-        size[1] = Math.min(h, this.tileMinSize[1]);
-    };
-    
+	(function (gridUI) {
+		var grid = gameUI.game.grid;
+		var jGridUI = $(gridUI);
+		
+		// shallow-copy config options into the grid element.
+		config.clone(false, gridUI);
+		
+		// set position of tile elements to absolute
+		jGridUI.css({position : "absolute"});
+		
+		
+		// #################################################################################
+		// GridUI functions
+		
+		/**
+		 * Compute tile width and height.
+		 */
+		gridUI.getTileSize = function(size) {
+			var w = this.gridMinSize[0] / grid.width;
+			var h = this.gridMinSize[1] / grid.height;
+			
+			size[0] = Math.min(w, this.tileMinSize[0]);
+			size[1] = Math.min(h, this.tileMinSize[1]);
+		};
 	
-    // #################################################################################
-    // GridUI initialization
-    
-	// create tile elements
-	gridUI.tileElements = squishy.createArray(grid.height);
-	for (var j = 0; j < grid.height; ++j) {
-		gridUI.tileElements[j] = squishy.createArray(grid.width);
-		for (var i = 0; i < grid.width; ++i) {
-			gridUI.tileElements[j][i] = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
+		// #################################################################################
+		// GridUI initialization
+		
+		gridUI.gameUI = gameUI;
+		
+		// create tile elements
+		gridUI.tileElements = squishy.createArray(grid.height);
+		for (var j = 0; j < grid.height; ++j) {
+			gridUI.tileElements[j] = squishy.createArray(grid.width);
+			for (var i = 0; i < grid.width; ++i) {
+				gridUI.tileElements[j][i] = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
+			}
 		}
-	}
-    
-    gridUI.gameUI = gameUI;
+		
+	})(config.gridEl);
+	return config.gridEl;
 };
 
 /**

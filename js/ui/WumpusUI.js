@@ -18,8 +18,8 @@ wumpusGame.WumpusUI = function(game, config) {
     
     // set grid
     this.game = game;
-    this.editorUI = wumpusGame.makeScriptEditor(this, config.scriptEditorUIConfig);
-    this.gridUI = wumpusGame.makeScriptEditor(this, config.gruidUIConfig);
+    this.editorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
+    this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
 };
 
 // /**

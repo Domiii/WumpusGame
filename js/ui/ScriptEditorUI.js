@@ -13,7 +13,7 @@
  * @param {String=} [config.theme] The theme (Default = "ace/theme/monokai").
  * @param {String=} [config.mode] The mode (Default = "ace/mode/javascript").
  */
-wumpusGame.makeScriptEditor = function(gameUI, config) {
+wumpusGame.makeScriptEditorUI = function(gameUI, config) {
     // sanity checks
     squishy.assert(gameUI);
     squishy.assert(config.editorEl);
@@ -27,6 +27,7 @@ wumpusGame.makeScriptEditor = function(gameUI, config) {
     }
     
     // initialize the script editor
+	// see: http://ace.c9.io/#nav=embedding
     var scriptEditor = ace.edit(config.editorEl);
     scriptEditor.setTheme(config.theme);
     scriptEditor.getSession().setMode(config.mode);

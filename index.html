@@ -13,7 +13,7 @@
     
     <!-- External utilities -->
     <!-- ACE editor -->
-    <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
     <!-- jQuery -->
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
     
@@ -60,12 +60,18 @@
     
     <!-- Initialization -->
     <script>
+		var editor = ace.edit("script-editor");
+		editor.setTheme("ace/theme/monokai");
+		editor.getSession().setMode("ace/mode/javascript");
+	
         // get UI elements
         var gameEl = squishy.getElementByIdOrDie("wumpus-game");
         var gridEl = squishy.getElementByIdOrDie("wumpus-grid");
         var tileElTemplate = squishy.getElementByIdOrDie("wumpus-grid-tile");
         var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
         
+		// TODO: Layout - http://jsfiddle.net/MjZ2F/
+		
         // ####################################################################################################
         // configure the Game
         var coreConfig = {

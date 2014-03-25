@@ -45,3 +45,10 @@ wumpusGame.WumpusGame = function(coreConfig, uiConfig) {
         this.ui = new wumpusGame.WumpusUI(this, uiConfig);
     }
 };
+
+ /**
+  * Initializes and starts the game.
+  */
+wumpusGame.WumpusGame.prototype.start = function() {
+	// TODO
+};
