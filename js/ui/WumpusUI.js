@@ -20,7 +20,8 @@ wumpusGame.WumpusUI = function(game, config) {
     
     // set grid
     this.game = game;
-    this.editorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
+	this.gameEl = $(gameEl);
+    this.scriptEditorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
     this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
     
     // layouting
@@ -28,7 +29,7 @@ wumpusGame.WumpusUI = function(game, config) {
     // layout the whole thing
     $(document).ready((function (self) {
         return function() {
-            self.doLayout();
+            self.updateLayout();
         };
     })(this));
 };
@@ -36,24 +37,57 @@ wumpusGame.WumpusUI = function(game, config) {
 /**
  * Determines the layout type and then layouts the entire UI correspondingly.
  */
-wumpusGame.WumpusUI.prototype.doLayout = function() {
+wumpusGame.WumpusUI.prototype.updateLayout = function() {
     // TODO: Provide different layouts for different window sizes.
     // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
+	
+	// remove layouting
+	var layoutRemover = function (index, className) {
+		return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
+	};
+	this.gridUI.removeClass(layoutRemover);
+	this.scriptEditorUI.editorEl.removeClass(layoutRemover);
+	
+	// re-compute layout
+	var totalH = $(this.gameEl[0].parentNode).innerHeight();
+    this.gridUI.addClass("pane").addClass("ui-layout-center");
+	this.scriptEditorUI.editorContainerEl.addClass("pane").addClass("ui-layout-south");
     
-    var gameEl = this.gameEl;
-    var gridEl = this.gridUI;
-    var editorEl = this.editorUI;
-    
-    // TODO: Layouting
-    
-    $('body').layout({ applyDefaultStyles: true });
+	// TODO: Re-compute height every time
+	// TODO: Figure out why resizing won't work...
+	
+    this.UILayout = this.gameEl.layout({ 
+		applyDefaultStyles: true,
+		resizable: true,
+		livePaneResizing : true,
+		minSize : totalH/4,
+		size : totalH/2,
+		onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
+		//closable: false,
+		
+		center : {
+			minSize : totalH/4,
+			size : totalH/2,
+		},
+		south : {
+			minSize : totalH/4,
+			size : totalH/2,
+		}
+	});
+	
+	this.updateChildLayout();
 };
 
-// /**
- // * 
- // */
-// wumpusGame.WumpusUI.prototype. = function() {
-// };
+/**
+ * Update layout of children.
+ */
+wumpusGame.WumpusUI.prototype.updateChildLayout = function() {
+	var totalH = $(this.gameEl[0].parentNode).innerHeight();
+	//this.UILayout.sizePane('south', totalH/2);
+	
+	this.gridUI.updateGridLayout();
+	this.scriptEditorUI.updateScriptEditorLayout();
+};
 
 // /**
  // * 

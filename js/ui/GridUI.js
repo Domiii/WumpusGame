@@ -22,52 +22,69 @@ wumpusGame.makeGridUI = function(gameUI, config) {
     squishy.assert(config.tileElTemplate, "config.tileElTemplate is not defined.");
     squishy.assert(config.gridMinSize, "config.gridMinSize is not defined.");
     squishy.assert(config.tileMinSize, "config.tileMinSize is not defined.");
-    
-	(function (gridUI) {
-		var grid = gameUI.game.grid;
-		var jGridUI = $(gridUI);
 		
-		// shallow-copy config options into the grid element.
-		config.clone(false, gridUI);
-		
-		// set position of tile elements to absolute
-		jGridUI.css({position : "absolute"});
-		
-		
-		// #################################################################################
-		// GridUI functions
-		
-		/**
-		 * Compute tile width and height.
-		 */
-		gridUI.getTileSize = function(size) {
-			var w = this.gridMinSize[0] / grid.width;
-			var h = this.gridMinSize[1] / grid.height;
-			
-			size[0] = Math.min(w, this.tileMinSize[0]);
-			size[1] = Math.min(h, this.tileMinSize[1]);
-		};
+	var gridUI = $(config.gridEl);
+
+	// shallow-copy config options into the grid element.
+	config.clone(false, gridUI);
+	gridUI.gameUI = gameUI;
 	
-		// #################################################################################
-		// GridUI initialization
+	
+	// #################################################################################
+	// GridUI initialization
+	var grid = gameUI.game.grid;
+	
+	gridUI.tileElements = squishy.createArray(grid.height);
+	for (var j = 0; j < grid.height; ++j) {
+		gridUI.tileElements[j] = squishy.createArray(grid.width);
+		for (var i = 0; i < grid.width; ++i) {
+			var tileEl = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
+			gridUI.tileElements[j][i] = tileEl;
+			gridUI.append(tileEl);
+		}
+	}
+	
+	// #################################################################################
+	// GridUI functions
+	
+	/**
+	 * Re-compute layout.
+	 */
+	gridUI.updateGridLayout = function() {
+		var grid = this.gameUI.game.grid;
 		
-		gridUI.gameUI = gameUI;
-		
-		// create tile elements
-		gridUI.tileElements = squishy.createArray(grid.height);
+		// re-compute each tile's layout
 		for (var j = 0; j < grid.height; ++j) {
-			gridUI.tileElements[j] = squishy.createArray(grid.width);
 			for (var i = 0; i < grid.width; ++i) {
-				var tileEl = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
-                gridUI.tileElements[j][i] = tileEl;
-                gridUI.appendChild(tileEl);
+                this.tileElements[j][i].updateTileLayout();
 			}
 		}
+	};
+	
+	
+	/**
+	 * Compute tile width and height.
+	 */
+	gridUI.getTileSize = function(size) {
+		var grid = this.gameUI.game.grid;
+		var w = this.innerWidth() / grid.width;			// actual width, given by the current grid size
+		var h = this.innerHeight() / grid.height;		// actual height, given by the current grid size
 		
-	})(config.gridEl);
-	return config.gridEl;
+		// make the tiles square
+		w = Math.min(w, h);
+		h = w;
+		
+		size[0] = Math.max(w, this.tileMinSize[0]);
+		size[1] = Math.max(h, this.tileMinSize[1]);
+	};
+	
+	return gridUI;
 };
 
+
+// #######################################################################################
+// Tile elements
+	
 /**
  * Creates a new Tile DOM element to visualize the given tile.
  */
@@ -76,18 +93,17 @@ wumpusGame.createTileElement = function(gridUI, tile) {
     squishy.assert(tile, "tile is not defined.");
     
     var tileElTemplate = gridUI.tileElTemplate;
-    var tileEl = tileElTemplate.cloneNode(true);
+    var tileEl = $(tileElTemplate.cloneNode(true));
     tileEl.gridUI = gridUI;
     tileEl.tile = tile;
         
     /**
-     * Updates the rendering of this tile.
+     * Re-computes layout of the tile.
      */
-    tileEl.updateTile = function() {
+    tileEl.updateTileLayout = function() {
         var tile = this.tile;
         
         // determine size and index
-        var jTileEl = $(this);
         if (!this.tileSize) {
             this.tileSize = squishy.createArray(2);
         }
@@ -97,16 +113,13 @@ wumpusGame.createTileElement = function(gridUI, tile) {
         var i = tile.x;
         var j = tile.y;
         
-        // set width, height and position
-        jTileEl.outerWidth(w, true);     // width includes margin
-        jTileEl.outerHeight(h, true);    // height includes margin
-        jTileEl.css({left : (w * i) + "px", top : (h * j) + "px"});
-        jTileEl.css('position', 'absolute');
-        jTileEl.css('display', 'block');
+        // set position & size
+        tileEl.css('display', 'block');
+        tileEl.css('position', 'absolute');
+        tileEl.css({left : (w * i) + "px", top : (h * j) + "px"});
+        tileEl.outerWidth(w, true);     // width includes margin
+        tileEl.outerHeight(h, true);    // height includes margin
     };
-    
-    // update tile
-    tileEl.updateTile();
     
     return tileEl;
 };

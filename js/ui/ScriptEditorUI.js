@@ -33,6 +33,18 @@ wumpusGame.makeScriptEditorUI = function(gameUI, config) {
     scriptEditor.getSession().setMode(config.mode);
     
     scriptEditor.gameUI = gameUI;
+	scriptEditor.editorEl = $(config.editorEl);							// this is the actual editor
+	scriptEditor.editorContainerEl = $(config.editorEl.parentNode);		// this is the top-level node of the editor
+	
+	
+	// ################################################################################################################
+	// Script Editor UI functions
+	
+	/**
+	 * Update script editor layout
+	 */
+	scriptEditor.updateScriptEditorLayout = function() {
+	};
     
     return scriptEditor;
 };
