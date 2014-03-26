@@ -58,7 +58,9 @@ wumpusGame.makeGridUI = function(gameUI, config) {
 		for (var j = 0; j < grid.height; ++j) {
 			gridUI.tileElements[j] = squishy.createArray(grid.width);
 			for (var i = 0; i < grid.width; ++i) {
-				gridUI.tileElements[j][i] = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
+				var tileEl = wumpusGame.createTileElement(gridUI, grid.getTile(i, j));
+                gridUI.tileElements[j][i] = tileEl;
+                gridUI.appendChild(tileEl);
 			}
 		}
 		
@@ -85,20 +87,22 @@ wumpusGame.createTileElement = function(gridUI, tile) {
         var tile = this.tile;
         
         // determine size and index
-        var tileEl = $(this);
-        if (!tileEl.tileSize) {
-            tileEl.tileSize = squishy.createArray(2);
+        var jTileEl = $(this);
+        if (!this.tileSize) {
+            this.tileSize = squishy.createArray(2);
         }
-        this.gridUI.getTileSize(tileEl.tileSize);
-        var w = tileEl.tileSize[0];
-        var h = tileEl.tileSize[1];
+        this.gridUI.getTileSize(this.tileSize);
+        var w = this.tileSize[0];
+        var h = this.tileSize[1];
         var i = tile.x;
         var j = tile.y;
         
         // set width, height and position
-        tileEl.outerWidth(w, true);     // width includes margin
-        tileEl.outerHeight(h, true);    // height includes margin
-        tileEl.css({left : (w * i) + "px", top : (h * j) + "px"});
+        jTileEl.outerWidth(w, true);     // width includes margin
+        jTileEl.outerHeight(h, true);    // height includes margin
+        jTileEl.css({left : (w * i) + "px", top : (h * j) + "px"});
+        jTileEl.css('position', 'absolute');
+        jTileEl.css('display', 'block');
     };
     
     // update tile

@@ -104,67 +104,99 @@ Array.prototype.shuffle = function() {
 // ##############################################################################################################
 // Object
 
-/**
- * Adds a copy method to every object.
- * @param newObj The object to clone all properties to.
- * @param {bool} deepCopy Whether to deep-copy elements (true by default).
- */
-Object.prototype.clone = function(deepCopy, newObj) {
-  if (arguments.length === 0) {
-    deepCopy = true;
-  }
-  
-  newObj = newObj || ((this instanceof Array) ? [] : {});
-  
-  for (var i in this) {
-    if (deepCopy && typeof this[i] == "object") {
-        newObj[i] = this[i].clone();
-    }
-    else {
-        newObj[i] = this[i];
-    }
-  }
-  return newObj;
-};
+Object.defineProperty(Object.prototype, "clone", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /**
+         * Adds a copy method to every object.
+         * @param newObj The object to clone all properties to.
+         * @param {bool} deepCopy Whether to deep-copy elements (true by default).
+         */
+        function(deepCopy, newObj) {
+            if (arguments.length === 0) {
+                deepCopy = true;
+            }
+
+            newObj = newObj || ((this instanceof Array) ? [] : {});
+
+            for (var i in this) {
+                if (deepCopy && typeof this[i] == "object") {
+                    newObj[i] = this[i].clone();
+                }
+                else {
+                    newObj[i] = this[i];
+                }
+            }
+            return newObj;
+        }
+});
+
+Object.defineProperty(Object.prototype, "getObjectPropertyCount", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /**
+         * Determines how many properties the given object has.
+         *
+         * @see http://stackoverflow.com/questions/5533192/how-to-get-object-length-in-jquery
+         */
+        function() {
+            var size = 0;
+            for (var i in this) {
+                ++size;
+            }
+            return size;
+        }
+});
 
 
-/**
- * Determines how many properties the given object has.
- *
- * @see http://stackoverflow.com/questions/5533192/how-to-get-object-length-in-jquery
- */
-Object.prototype.getObjectPropertyCount = function() {
-    var size = 0;
-    for (var i in this) {
-        ++size;
-    }
-    return size;
-};
+Object.defineProperty(Object.prototype, "hasProperty", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /**
+         * Checks whether the given object has the given property
+         *
+         * @param obj
+         * @param key
+         */
+        function(key) {
+            return this.getObjectPropertyCount(this.key) === 0;
+        }
+});
 
-/**
- * Checks whether the given object has the given property
- *
- * @param obj
- * @param key
- */
-Object.prototype.hasProperty = function(key) {
-    return this.getObjectPropertyCount(this.key) === 0;
-};
 
-/**
- * Returns the first property of the given object.
- */
-Object.prototype.getFirstProperty = function() {
-    for (var prop in this)
-        return this[prop];
-};
+Object.defineProperty(Object.prototype, "getFirstProperty", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /**
+         * Returns the first property of the given object.
+         */
+        function() {
+            for (var prop in this)
+                return this[prop];
+        }
+});
 
-/** 
- * Render object to string, using JSon.
- */
-Object.prototype.stringify = function(obj) {
-    return JSON.stringify(obj, null, 4);
-};
+
+Object.defineProperty(Object.prototype, "stringify", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /** 
+         * Render object to string, using JSon.
+         */
+        function(obj) {
+            return JSON.stringify(obj, null, 4);
+        }
+});
 
 
 /**

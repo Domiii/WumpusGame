@@ -439,8 +439,6 @@ var TextHighlightRules = function() {
             return;
         }
         for (var key in rules) {
-			// domi edit
-			if (!rules.hasOwnProperty(key)) continue;
 			
             var state = rules[key];
             for (var i = 0; i < state.length; i++) {

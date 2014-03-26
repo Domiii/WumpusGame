@@ -13,6 +13,8 @@
   */
 wumpusGame.WumpusUI = function(game, config) {
 	// sanity checks
+    squishy.assert(game, "game is not defined.");
+    squishy.assert(config.gameEl, "config.gameEl is not defined.");
     squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
     squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
     
@@ -20,13 +22,32 @@ wumpusGame.WumpusUI = function(game, config) {
     this.game = game;
     this.editorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
     this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
+    
+    // layouting
+    
+    // layout the whole thing
+    $(document).ready((function (self) {
+        return function() {
+            self.doLayout();
+        };
+    })(this));
 };
 
-// /**
- // * 
- // */
-// wumpusGame.WumpusUI.prototype. = function() {
-// };
+/**
+ * Determines the layout type and then layouts the entire UI correspondingly.
+ */
+wumpusGame.WumpusUI.prototype.doLayout = function() {
+    // TODO: Provide different layouts for different window sizes.
+    // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
+    
+    var gameEl = this.gameEl;
+    var gridEl = this.gridUI;
+    var editorEl = this.editorUI;
+    
+    // TODO: Layouting
+    
+    $('body').layout({ applyDefaultStyles: true });
+};
 
 // /**
  // * 

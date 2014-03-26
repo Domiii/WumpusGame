@@ -16,6 +16,7 @@
     <script src="js/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
     <!-- jQuery -->
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+    <script src="js/lib/jquery.layout.min.js"></script>
     
     
     <!-- Some useful utilities -->
@@ -40,22 +41,25 @@
 
 
 <body>
-    <!-- The actual game container -->
-	<div id="wumpus-game">
+    <!-- The game container -->
+	<div id="wumpus-game" >
+        <!-- The actual game Grid -->
 		<div id="wumpus-grid">
 		</div>
+        
+        <!-- Script editor -->
+        <div id="script-editor-container">
+            <div id="script-editor">
+                function foo(items) {
+                    var x = "All this is syntax highlighted";
+                    return x;
+                }
+            </div>
+        </div>
 	</div>
     
     <!-- Any tile in the grid will be a copy of this element -->
-    <div id="wumpus-grid-tile" class="tile" style="display:hidden">
-    </div>
-    
-    <!-- Script editor -->
-    <div id="script-editor">
-        function foo(items) {
-            var x = "All this is syntax highlighted";
-            return x;
-        }
+    <div id="wumpus-grid-tile" class="tile" style="display:none;">
     </div>
     
     <!-- Initialization -->
@@ -88,6 +92,8 @@
         
         // configure the UI
         var uiConfig = {
+            gameEl : gameEl,
+                
             // configure the grid UI
             gridUIConfig : {
                 gridEl : gridEl,
