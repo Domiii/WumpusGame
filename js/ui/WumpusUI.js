@@ -8,8 +8,10 @@
   * Creates a new WumpusUI object for managing the UI of the WumpusGame.
   *
   * @param {Object} config Wumpus UI configuration.
-  * @param {Element} [config.gridUIConfig] Configures the grid UI.
-  * @param {Element} [config.scriptEditorUIConfig] Configures the ScriptEditor.
+  * @param {Element} [config.gameEl] The top-level game container.
+  * @param {Element} [config.playerEl] The element that represents the player.
+  * @param {Object} [config.gridUIConfig] Configures the grid UI.
+  * @param {Object} [config.scriptEditorUIConfig] Configures the ScriptEditor.
   */
 wumpusGame.WumpusUI = function(game, config) {
 	// sanity checks
@@ -20,7 +22,8 @@ wumpusGame.WumpusUI = function(game, config) {
     
     // set grid
     this.game = game;
-	this.gameEl = $(gameEl);
+	this.gameEl = $(config.gameEl);
+    this.playerEl = $(config.playerEl);
     this.scriptEditorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
     this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
     
@@ -89,8 +92,42 @@ wumpusGame.WumpusUI.prototype.updateChildLayout = function() {
 	this.scriptEditorUI.updateScriptEditorLayout();
 };
 
-// /**
- // * 
- // */
-// wumpusGame.WumpusUI.prototype. = function() {
-// };
+/**
+ * This is called whenever a tile is updated (can be caused by layouting, but also by game mechanics).
+ */
+wumpusGame.WumpusUI.prototype.updateTileStyle = function(tileEl) {
+    var tile =  tileEl.tile;
+    
+	// set player
+    if (this.game.player.getTile() == tile) {
+        this.movePlayerTile(tileEl);
+    }
+};
+
+/**
+ * Adds the player element to the given tile element.
+ */
+wumpusGame.WumpusUI.prototype.movePlayerTile = function(tileEl) {
+    var w = tileEl.innerWidth() - parseInt(tileEl.css("padding-left"));
+    var h = tileEl.innerHeight() - parseInt(tileEl.css("padding-top"));
+    
+    // reset style
+    this.playerEl.attr("style", "");
+    
+    // set position & size
+    this.playerEl.css({
+        left : "0px", 
+        top : "0px"
+    });
+    this.playerEl.outerWidth(w, true);     // width includes margin
+    this.playerEl.outerHeight(h, true);    // height includes margin
+    
+    // rotate player
+    var direction = this.game.player.direction;
+    var angle = wumpusGame.Direction.computeAngle(direction);
+	//squishy.transformOrigin(this.playerEl[0]);
+    squishy.transformRotation(this.playerEl[0], angle);
+    
+    // add as first child of tileEl
+    tileEl.prepend(this.playerEl);
+};

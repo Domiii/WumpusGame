@@ -205,7 +205,29 @@ Object.defineProperty(Object.prototype, "stringify", {
  * @param objType
  */
 squishy.isDefinedType = function(objType) {
-    return objType != "undefined";
+    return objType !== "undefined";
+};
+
+
+/**
+ * Checks whether the given object is undefined.
+ *
+ * @param obj
+ */
+squishy.isDefined = function(obj) {
+    return squishy.isDefinedType(typeof(obj));
+};
+
+
+/**
+ * Sets obj[propName] = value, if the object does not yet have the property.
+ *
+ * @param obj
+ */
+squishy.setIfUndefined = function(obj, propName, value) {
+    if (!squishy.isDefined(obj[propName])) {
+        obj[propName] = value;
+    }
 };
 
 /**

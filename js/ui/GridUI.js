@@ -63,6 +63,23 @@ wumpusGame.makeGridUI = function(gameUI, config) {
 	
 	
 	/**
+	 * Get the tile at the given index.
+	 */
+	gridUI.getTile = function(x, y) {
+		return this.tileElements[y][x];
+	};
+	
+	
+	/**
+	 * Update the tile's style at the given index
+	 */
+	gridUI.updateTileStyle = function(x, y) {
+		var tile = this.getTile(x, y);
+        tile.updateTileStyle();
+	};
+	
+	
+	/**
 	 * Compute tile width and height.
 	 */
 	gridUI.getTileSize = function(size) {
@@ -96,9 +113,13 @@ wumpusGame.createTileElement = function(gridUI, tile) {
     var tileEl = $(tileElTemplate.cloneNode(true));
     tileEl.gridUI = gridUI;
     tileEl.tile = tile;
-        
+    
+    // set default style
+    tileEl.css('display', 'block');
+    tileEl.css('position', 'absolute');
+
     /**
-     * Re-computes layout of the tile.
+     * Re-computes size and position of the tile or the given other element.
      */
     tileEl.updateTileLayout = function() {
         var tile = this.tile;
@@ -110,15 +131,69 @@ wumpusGame.createTileElement = function(gridUI, tile) {
         this.gridUI.getTileSize(this.tileSize);
         var w = this.tileSize[0];
         var h = this.tileSize[1];
-        var i = tile.x;
-        var j = tile.y;
+        var i = tile.tilePosition[0];
+        var j = tile.tilePosition[1];
         
         // set position & size
-        tileEl.css('display', 'block');
-        tileEl.css('position', 'absolute');
-        tileEl.css({left : (w * i) + "px", top : (h * j) + "px"});
-        tileEl.outerWidth(w, true);     // width includes margin
-        tileEl.outerHeight(h, true);    // height includes margin
+        this.css({left : (w * i) + "px", top : (h * j) + "px"});
+        this.outerWidth(w, true);     // width includes margin
+        this.outerHeight(h, true);    // height includes margin
+        
+        // update style
+        this.updateTileStyle();
+    };
+    
+    
+    /**
+     * Re-compute rendering of this tile.
+     */
+    tileEl.updateTileStyle = function() {
+        var tile = this.tile;
+        
+        // remove all inner elements (slow version)
+        this[0].innerHTML = "";
+        
+        // add style for visited status
+        if (!tile.visited) {
+            this.addClass("tile_notvisited");
+        }
+        else {
+            this.removeClass("tile_notvisited");
+        }
+        
+        // set text
+        var text = "";
+        
+        if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
+            text += "W ";
+        }
+        if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
+            text += "G ";
+        }
+        if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
+            text += "P ";
+        }
+        if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
+            text += "B ";
+        }
+        if (tile.hasTileFlag(wumpusGame.TileFlags.Stench)) {
+            text += "s ";
+        }
+        if (tile.hasTileFlag(wumpusGame.TileFlags.Breeze)) {
+            text += "b ";
+        }
+        if (tile.hasTileFlag(wumpusGame.TileFlags.FlappingNoise)) {
+            text += "f ";
+        }
+        
+        var w = tileEl.innerWidth();
+        var shortText = squishy.truncateText(text, "14px arial");
+        squishy.appendText(tileEl[0], shortText, w);
+        tileEl.attr("title", text);
+        
+        
+        // add other decorations
+        this.gridUI.gameUI.updateTileStyle(this);
     };
     
     return tileEl;

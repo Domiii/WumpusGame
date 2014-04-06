@@ -1,7 +1,13 @@
-This file contains some notes on implementation details.
+This file contains some implementation details.
 
 
 Google Caja
     - Google Caja is a beautiful thing. Ir provides a safe execution context for user-supplied code.
     - This SO thread marks the first milestone on this project's road to using Caja: http://stackoverflow.com/questions/22506026/how-to-safely-run-user-supplied-javascript-code
     - This snippet shows how to let host and guest interact: https://developers.google.com/caja/docs/callingguestcode/
+    
+Installation
+    - Install Node.js
+    - Install MySQL
+        - http://www.bluecrownsoftware.com/article/271/Installing-MySQL-without-Root-Access-on-Linux
+    - 

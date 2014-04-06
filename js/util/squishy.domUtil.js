@@ -83,13 +83,11 @@ squishy.transformScale = function(targetEl, factorX, factorY) {
  * @see http://www.w3schools.com/css/css3_2dtransforms.asp
  */
 squishy.transformRotation = function(targetEl, angle, angleUnits) {
-	squishy.transformOrigin(targetEl);
-    
     angleUnits = angleUnits || "rad";
 	var angleString = angle + angleUnits;
     
     // create browser-independent CSS style
-    fullCSSString =
+    var fullCSSString =
     	"transform:rotate(" + angleString + ");" +
     	"-ms-transform:rotate(" + angleString + ");" +
     	"-moz-transform:rotate(" + angleString + ");" +
@@ -274,11 +272,10 @@ squishy.truncateElementTexts = function(targetElement, font, ellipsis) {
  * @param {String} font The css font descriptor that text is to be rendered with.
  * @param {Number} maxWidth Max display width of string.
  * @param {Element=} targetElement Optional element that should contain the text.
- * @param {String=} ellipsis Set to "..." by default.
+ * @param {String=} ellipsis Default = "...".
  * 
  */
 squishy.truncateText = function(text, font, maxPixelsWidth, targetElement, ellipsis) {
-    // TODO: Use binary search & heuristics to speed up the process for very long text
     if (targetElement) {
         // subtract padding, margin & border from max pixel width
         var jqEl = $(targetElement);
@@ -288,6 +285,8 @@ squishy.truncateText = function(text, font, maxPixelsWidth, targetElement, ellip
     
     var width;
     var len = text.length;
+    
+    // TODO: Use binary search & heuristics to speed up the process for very long text
     while ((width = squishy.getTextWidth(text, font)) > maxPixelsWidth) {
         --len;
         text = text.substring(0, len) + ellipsis;

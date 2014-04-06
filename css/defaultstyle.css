@@ -32,10 +32,22 @@ body {
 	bottom: 0px;
 }
 
+.player {
+    background-image: url(../img/player.png);
+    background-size: contain;
+    margin: 0px;
+    padding: 0px;
+}
+
 .tile {
     margin: 2px;
+    padding: 2px;
     border-style: solid;
     border-width: 1px;
+}
+
+.tile_notvisited {
+    background-color: #CCCCCC;
 }
 
 /* 

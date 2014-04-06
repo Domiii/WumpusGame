@@ -43,6 +43,9 @@
     <script src="js/ui/WumpusUI.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/ui/GridUI.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/ui/ScriptEditorUI.js" type="text/javascript" charset="utf-8"></script>
+    
+    <!-- Game User code files -->
+    <script src="js/user/DefaultWorldGenerator.js" type="text/javascript" charset="utf-8"></script>
 </head>
 
 
@@ -51,19 +54,31 @@
     <!-- The game container -->
 	<div id="wumpus-game">
         <!-- The actual game Grid -->
-		<div id="wumpus-grid">
+		<div id="wumpus-grid" style="float:left;">
+		</div>
+        
+        <!-- Control panel -->
+		<div id="wumpus-controls" style="float:left;">
+            <button id="wumpus-forward">Forward</button>
+            <button id="wumpus-backward">Backward</button>
+            <button id="wumpus-turncw">Turn Clockwise</button>
+            <button id="wumpus-turnccw">Turn Counter-clockwise</button>
 		</div>
         
         <!-- Script editor -->
         <div id="script-editor-container">
             <div id="script-editor">
-                function foo(items) {
-                    var x = "All this is syntax highlighted";
-                    return x;
-                }
+function foo(items) {
+    var x = "All this is syntax highlighted";
+    return x;
+}
             </div>
         </div>
 	</div>
+    
+    <!-- The player element  -->
+    <div id="wumpus-player" class="player">
+    </div>
     
     <!-- Any tile in the grid will be a copy of this element -->
     <div id="wumpus-grid-tile" class="tile" style="display:none;">
@@ -78,6 +93,7 @@
         // get UI elements
         var gameEl = squishy.getElementByIdOrDie("wumpus-game");
         var gridEl = squishy.getElementByIdOrDie("wumpus-grid");
+        var playerEl = squishy.getElementByIdOrDie("wumpus-player");
         var tileElTemplate = squishy.getElementByIdOrDie("wumpus-grid-tile");
         var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
         
@@ -94,12 +110,17 @@
             
             // configure the initial player state
             playerState : {
+                position : [0, 0],
+                direction : wumpusGame.Direction.Down,
+                ammo : 1,
+                score : 0
             }
         };
         
         // configure the UI
         var uiConfig = {
             gameEl : gameEl,
+            playerEl : playerEl,
                 
             // configure the grid UI
             gridUIConfig : {
@@ -118,10 +139,10 @@
         
         // ####################################################################################################
         // create & start the game
-        var game = new wumpusGame.WumpusGame(coreConfig, uiConfig);
+        var game = new wumpusGame.WumpusGame();
         
         // start game
-        game.start();
+        game.restart(coreConfig, uiConfig);
     </script>
     
     

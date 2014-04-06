@@ -28,8 +28,7 @@ wumpusGame.TileFlags = {
     None : 0x00,
     Stench : 0x01,
     Breeze : 0x02,
-    Glitter : 0x04,
-    FlappingNoise : 0x08
+    FlappingNoise : 0x04
 };
 wumpusGame.TileFlags.AllNames = Object.keys(wumpusGame.TileFlags);
 
@@ -38,41 +37,98 @@ wumpusGame.TileFlags.AllNames = Object.keys(wumpusGame.TileFlags);
 /**
  * Constructs a new tile. A tile can contain one or zero object of any type, and one or zero tile indicator flags.
  *
+ * @constructor
  * @param {Number} objects The current objects in this tile, as a combination of wumpusGame.ObjectTypes.
  * @param {Number} flags The current flags are a combination of wumpusGame.TileFlags.
  */
-wumpusGame.Tile = function(grid, x, y, objects, flags) {
+wumpusGame.Tile = function(grid, x, y, objects, tileFlags) {
     this.grid = grid;
-	this.x = x;
-    this.y = y;
-    this.objects = objects;
-    this.flags = flags;
+	this.tilePosition = [x, y];
+    this.clearTile();
+};
+
+/**
+ * Returns the neighbor tile in the given direction or null if there is none.
+ */
+wumpusGame.Tile.prototype.getTilePosition = function() {
+    return this.tilePosition;
+};
+
+
+/**
+ * Returns the neighbor tile in the given direction or null if there is none.
+ */
+wumpusGame.Tile.prototype.getNeighborTile = function(direction) {
+    
+};
+
+
+/**
+ * Clears this tile.
+ *
+ * @sealed
+ */
+wumpusGame.Tile.prototype.clearTile = function(tileFlag) {
+    this.objects = squishy.isDefined(this.objects) ? this.objects : wumpusGame.ObjectTypes.None;
+    this.tileFlags = squishy.isDefined(this.tileFlags) ? this.tileFlags : wumpusGame.TileFlags.None;
+    this.visited = false;
+};
+
+/**
+ * Checks if a given wumpusGame.ObjectType is set for this tile.
+ */
+wumpusGame.Tile.prototype.hasTileFlag = function(tileFlag) {
+    return this.tileFlags & tileFlag;
 };
 
 /**
  * Sets wumpusGame.TileFlags.
  */
 wumpusGame.Tile.prototype.setTileFlag = function(flag) {
-    this.flags = squishy.setFlag(this.flags, flag);
+    this.tileFlags = squishy.setFlag(this.tileFlags, flag);
 };
 
 /**
  * Removes wumpusGame.TileFlags.
  */
 wumpusGame.Tile.prototype.removeTileFlag = function(flag) {
-    this.flags = squishy.removeFlag(this.flags, flag);
+    this.tileFlags = squishy.removeFlag(this.tileFlags, flag);
+};
+
+
+/**
+ * Checks if a given wumpusGame.ObjectTypes is set for this tile.
+ */
+wumpusGame.Tile.prototype.hasObject = function(objectType) {
+    return this.objects & objectType;
 };
 
 /**
  * Sets wumpusGame.ObjectTypes.
  */
 wumpusGame.Tile.prototype.setObject = function(objectType) {
-    this.flags = squishy.setFlag(this.objects, objectType);
+    this.objects = squishy.setFlag(this.objects, objectType);
 };
 
 /**
  * Removes wumpusGame.ObjectTypes.
  */
 wumpusGame.Tile.prototype.removeObject = function(objectType) {
-    this.flags = squishy.removeFlag(this.objects, objectType);
+    this.objects = squishy.removeFlag(this.objects, objectType);
+};
+
+/**
+ * Sets the visited status of this tile.
+ */
+wumpusGame.Tile.prototype.markTileVisited = function(visited) {
+    this.visited = !squishy.isDefined(visited) ? true : visited == true;
+};
+
+/**
+ * Notifies that this tile has changed.
+ */
+wumpusGame.Tile.prototype.notifyTileChanged = function() {
+    if (this.grid.game.ui) {
+        this.grid.game.ui.gridUI.updateTileStyle(this.tilePosition[0], this.tilePosition[1]);
+    }
 };
