@@ -57,13 +57,13 @@ wumpusGame.Player.prototype.movePlayer = function(newPos) {
 wumpusGame.Player.prototype.performAction = function(action) {
     switch (action) {
         case wumpusGame.PlayerAction.Forward:
-            var neighbor = this.getTile().getNeighborTile(this.direction);
+            var neighborTile = this.getTile().getNeighborTile(this.direction);
             if (!neighborTile) return;
             // move player to new tile
             this.movePlayer(neighborTile.getTilePosition());
             break;
         case wumpusGame.PlayerAction.Backward:
-            var neighbor = this.getTile().getNeighborTile(wumpusGame.Direction.getOppositeDirection(this.direction));
+            var neighborTile = this.getTile().getNeighborTile(wumpusGame.Direction.getOppositeDirection(this.direction));
             if (!neighborTile) return;
             // move player to new tile
             this.movePlayer(neighborTile.getTilePosition());

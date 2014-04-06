@@ -54,11 +54,11 @@
     <!-- The game container -->
 	<div id="wumpus-game">
         <!-- The actual game Grid -->
-		<div id="wumpus-grid" style="float:left;">
+		<div id="wumpus-grid">
 		</div>
         
         <!-- Control panel -->
-		<div id="wumpus-controls" style="float:left;">
+		<div id="wumpus-tools">
             <button id="wumpus-forward">Forward</button>
             <button id="wumpus-backward">Backward</button>
             <button id="wumpus-turncw">Turn Clockwise</button>
@@ -86,6 +86,8 @@ function foo(items) {
     
     <!-- Initialization -->
     <script>
+		"use strict";
+		
 		var editor = ace.edit("script-editor");
 		editor.setTheme("ace/theme/monokai");
 		editor.getSession().setMode("ace/mode/javascript");
@@ -94,6 +96,7 @@ function foo(items) {
         var gameEl = squishy.getElementByIdOrDie("wumpus-game");
         var gridEl = squishy.getElementByIdOrDie("wumpus-grid");
         var playerEl = squishy.getElementByIdOrDie("wumpus-player");
+        var toolsEl = squishy.getElementByIdOrDie("wumpus-tools");
         var tileElTemplate = squishy.getElementByIdOrDie("wumpus-grid-tile");
         var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
         
@@ -121,6 +124,7 @@ function foo(items) {
         var uiConfig = {
             gameEl : gameEl,
             playerEl : playerEl,
+            toolsEl : toolsEl,
                 
             // configure the grid UI
             gridUIConfig : {
@@ -138,11 +142,39 @@ function foo(items) {
         
         
         // ####################################################################################################
+        // setup buttons
+        
+        // get all buttons
+        var btnForward = squishy.getElementByIdOrDie("wumpus-forward");
+        var btnBackward = squishy.getElementByIdOrDie("wumpus-backward");
+        var btnTurnCW = squishy.getElementByIdOrDie("wumpus-turncw");
+        var btnTurnCCW = squishy.getElementByIdOrDie("wumpus-turnccw");
+        
+        // assign actions to buttons
+        squishy.onClick(btnForward, function(evt) {
+            game.player.performAction(wumpusGame.PlayerAction.Forward);
+        });
+        squishy.onClick(btnBackward, function(evt) {
+            game.player.performAction(wumpusGame.PlayerAction.Backward);
+        });
+        squishy.onClick(btnTurnCW, function(evt) {
+            game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
+        });
+        squishy.onClick(btnTurnCCW, function(evt) {
+            game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+        });
+        
+        // ####################################################################################################
         // create & start the game
         var game = new wumpusGame.WumpusGame();
         
         // start game
         game.restart(coreConfig, uiConfig);
+        
+        // do something
+        game.player.performAction(wumpusGame.PlayerAction.Forward);
+        game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+        game.player.performAction(wumpusGame.PlayerAction.Forward);
     </script>
     
     

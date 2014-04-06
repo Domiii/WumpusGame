@@ -45,7 +45,9 @@ wumpusGame.Grid.prototype.reset = function() {
  * Returns the tile at the given location.
  */
 wumpusGame.Grid.prototype.getTile = function(x, y) {
-    return this.tiles[y][x];
+    if (y >= 0 && x >= 0 && y < this.tiles.length && x < this.tiles[y].length)
+        return this.tiles[y][x];
+    return null;
 };
 
 /**

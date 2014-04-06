@@ -187,8 +187,11 @@ wumpusGame.createTileElement = function(gridUI, tile) {
         }
         
         var w = tileEl.innerWidth();
-        var shortText = squishy.truncateText(text, "14px arial");
-        squishy.appendText(tileEl[0], shortText, w);
+        var shortText = squishy.truncateText(text, "14px arial", w);
+        this.textCont = $(document.createElement("div"));
+        this.textCont.css("position", "absolute");
+        squishy.appendText(this.textCont[0], shortText);
+        tileEl[0].appendChild(this.textCont[0]);
         tileEl.attr("title", text);
         
         

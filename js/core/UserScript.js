@@ -1,6 +1,7 @@
 /**
  * This file contains capabilities for safe and simple editing & running of user-supplied scripts.
  */
+ "use strict";
  
 
  /**
@@ -34,7 +35,7 @@ wumpusGame.UserScript.prototype.run = function() {
 };
 
  /**
-  * Constructs ScriptContext object which determines how a script is executed.
+  * Constructs a ScriptContext object which determines how a script is executed.
   * 
   * @param {Object=} config The optional configuration for the script context.
   * @param {Element=} [config.text] The underlying DOM element of the grid.

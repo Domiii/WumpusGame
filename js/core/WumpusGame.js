@@ -5,10 +5,8 @@
 
 /**
  * Defines the namespace of the Wumpus game.
- *
- * @const
  */
-var wumpusGame = {};
+squishy.exportGlobal("wumpusGame", {});
 
 /**
  * In the wumpus game, there are only four directions.
@@ -21,7 +19,7 @@ wumpusGame.Direction = {
     Left : 3,
     
     /**
-     * Returns the angle of the given direction in radians, assuming that Up is 0 degrees, and we are rotating clockwise.
+     * Returns the angle of the given direction in radians, assuming that Up is 0 degrees, and we are rotating clockwise (that is also the frame of reference in CSS3).
      */
     computeAngle : function(direction) {
         return direction * Math.PI / 2;
@@ -43,7 +41,7 @@ wumpusGame.Direction = {
         }
         else {
             // ccw
-            return (direction - 1) % 4;
+            return (direction + 3) % 4;
         }
     }
 };
@@ -112,7 +110,7 @@ wumpusGame.WumpusGame.prototype.restart = function(coreConfig, uiConfig) {
     this.worldGenerator.genWorld(this);
     
     // re-compute layout and style
-    this.ui.updateLayout();
+    this.ui.resetLayout();
     
     // initialize player
     this.player.initializePlayer();

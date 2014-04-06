@@ -17,6 +17,8 @@ wumpusGame.WumpusUI = function(game, config) {
 	// sanity checks
     squishy.assert(game, "game is not defined.");
     squishy.assert(config.gameEl, "config.gameEl is not defined.");
+    squishy.assert(config.playerEl, "config.playerEl is not defined.");
+    squishy.assert(config.toolsEl, "config.toolsEl is not defined.");
     squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
     squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
     
@@ -24,57 +26,71 @@ wumpusGame.WumpusUI = function(game, config) {
     this.game = game;
 	this.gameEl = $(config.gameEl);
     this.playerEl = $(config.playerEl);
+    this.toolsEl = $(config.toolsEl);
     this.scriptEditorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
     this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
-    
-    // layouting
-    
-    // layout the whole thing
-    $(document).ready((function (self) {
-        return function() {
-            self.updateLayout();
-        };
-    })(this));
 };
 
 /**
  * Determines the layout type and then layouts the entire UI correspondingly.
  */
-wumpusGame.WumpusUI.prototype.updateLayout = function() {
+wumpusGame.WumpusUI.prototype.resetLayout = function() {
     // TODO: Provide different layouts for different window sizes.
     // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
 	
-	// remove layouting
+    // create container for north layout
+    var northCont = this.northCotainer || $(document.createElement("div"));
+    
+	// remove existing layout classes
 	var layoutRemover = function (index, className) {
 		return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
 	};
 	this.gridUI.removeClass(layoutRemover);
 	this.scriptEditorUI.editorEl.removeClass(layoutRemover);
+	northCont.removeClass(layoutRemover);
 	
 	// re-compute layout
 	var totalH = $(this.gameEl[0].parentNode).innerHeight();
-    this.gridUI.addClass("pane").addClass("ui-layout-center");
-	this.scriptEditorUI.editorContainerEl.addClass("pane").addClass("ui-layout-south");
+    var totalW = $(this.gameEl[0].parentNode).innerWidth();
     
-	// TODO: Re-compute height every time
-	// TODO: Figure out why resizing won't work...
+    this.gridUI.addClass("ui-layout-center");
+    this.toolsEl.addClass("ui-layout-east");
+    northCont.addClass("ui-layout-center");
+	this.scriptEditorUI.editorContainerEl.addClass("ui-layout-east");
+    
+    // restructure layout
+    northCont.append(this.gridUI);
+    northCont.append(this.toolsEl);
+    this.gameEl.prepend(northCont);
 	
-    this.UILayout = this.gameEl.layout({ 
+    this.northLayout = northCont.layout({
+        applyDefaultStyles: true,
+		onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
+		//closable: false,
+		
+		center : {
+			minSize : totalW/4,
+			size : totalW/2,
+		},
+		east : {
+			minSize : totalW/10,
+			size : totalW/6,
+		}
+    });
+    this.UILayout = this.gameEl.layout({
 		applyDefaultStyles: true,
-		resizable: true,
-		livePaneResizing : true,
 		minSize : totalH/4,
 		size : totalH/2,
 		onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
 		//closable: false,
 		
 		center : {
-			minSize : totalH/4,
-			size : totalH/2,
+			minSize : totalW/4,
+			size : totalW/2,
 		},
-		south : {
-			minSize : totalH/4,
-			size : totalH/2,
+		east : {
+			minSize : totalW/4,
+			size : totalW/2,
 		}
 	});
 	
@@ -112,12 +128,15 @@ wumpusGame.WumpusUI.prototype.movePlayerTile = function(tileEl) {
     var h = tileEl.innerHeight() - parseInt(tileEl.css("padding-top"));
     
     // reset style
-    this.playerEl.attr("style", "");
+    //this.playerEl.attr("style", "");
     
     // set position & size
     this.playerEl.css({
         left : "0px", 
-        top : "0px"
+        top : "0px",
+        zIndex : "-1000",
+        position : "absolute"
+        
     });
     this.playerEl.outerWidth(w, true);     // width includes margin
     this.playerEl.outerHeight(h, true);    // height includes margin
@@ -125,7 +144,6 @@ wumpusGame.WumpusUI.prototype.movePlayerTile = function(tileEl) {
     // rotate player
     var direction = this.game.player.direction;
     var angle = wumpusGame.Direction.computeAngle(direction);
-	//squishy.transformOrigin(this.playerEl[0]);
     squishy.transformRotation(this.playerEl[0], angle);
     
     // add as first child of tileEl

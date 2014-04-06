@@ -59,7 +59,21 @@ wumpusGame.Tile.prototype.getTilePosition = function() {
  * Returns the neighbor tile in the given direction or null if there is none.
  */
 wumpusGame.Tile.prototype.getNeighborTile = function(direction) {
+    var pos = this.tilePosition;
+    if (direction === wumpusGame.Direction.Up) {
+        return this.grid.getTile(pos[0], pos[1] - 1);
+    }
+    if (direction === wumpusGame.Direction.Down) {
+        return this.grid.getTile(pos[0], pos[1] + 1);
+    }
+    if (direction === wumpusGame.Direction.Left) {
+        return this.grid.getTile(pos[0] - 1, pos[1]);
+    }
+    if (direction === wumpusGame.Direction.Right) {
+        return this.grid.getTile(pos[0] + 1, pos[1]);
+    }
     
+    squishy.assert(false, "Invalid direction: " + direction);
 };
 
 
