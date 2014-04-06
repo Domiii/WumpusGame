@@ -3,6 +3,7 @@
  /**
   * Constructs a new WorldGenerator base class.
   * 
+  * @interface
   * @param {Object} state Generator configuration.
   */
 wumpusGame.WorldGenerator = function(config) {
