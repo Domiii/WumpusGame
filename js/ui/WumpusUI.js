@@ -8,8 +8,11 @@
   * Creates a new WumpusUI object for managing the UI of the WumpusGame.
   *
   * @param {Object} config Wumpus UI configuration.
+  * @param {wumpusGame.WumpusUI.Visibility} [config.visibility] Determines what the player can see.
   * @param {Element} [config.gameEl] The top-level game container.
   * @param {Element} [config.playerEl] The element that represents the player.
+  * @param {Element} [config.toolsEl] The element that represents the tools bar.
+  * @param {Element} [config.footerEl] The element that represents footer.
   * @param {Object} [config.gridUIConfig] Configures the grid UI.
   * @param {Object} [config.scriptEditorUIConfig] Configures the ScriptEditor.
   */
@@ -19,16 +22,37 @@ wumpusGame.WumpusUI = function(game, config) {
     squishy.assert(config.gameEl, "config.gameEl is not defined.");
     squishy.assert(config.playerEl, "config.playerEl is not defined.");
     squishy.assert(config.toolsEl, "config.toolsEl is not defined.");
+    //squishy.assert(config.footerEl, "config.footerEl is not defined.");
     squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
     squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
     
     // set grid
+	this.visibility = !!config.visibility;		// force to bool
     this.game = game;
 	this.gameEl = $(config.gameEl);
     this.playerEl = $(config.playerEl);
     this.toolsEl = $(config.toolsEl);
     this.scriptEditorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
     this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
+};
+
+/**
+ * Visibility enum.
+ * @const
+ */
+wumpusGame.WumpusUI.Visibility = {
+	/**
+	 * TODO: Only visited tiles are visible.
+	 */
+	Visited : 1,
+	/**
+	 * Entire grid is visible, but you can only see contents of visited tiles.
+	 */
+	AllFoggy : 2,
+	/**
+	 * The entire grid is visible.
+	 */
+	All : 3
 };
 
 /**
@@ -39,7 +63,28 @@ wumpusGame.WumpusUI.prototype.resetLayout = function() {
     // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
 	
     // create container for north layout
+	var northContExisted = !!this.northCotainer;
     var northCont = this.northCotainer || $(document.createElement("div"));
+	
+	// add key handler
+	if (!northContExisted) {
+		var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
+		$(document).keydown((function(game) { return function(e){
+			if (e.which == arrowKey.up) { 
+			   game.player.performAction(wumpusGame.PlayerAction.Forward);
+			}
+			if (e.which == arrowKey.down) { 
+			   game.player.performAction(wumpusGame.PlayerAction.Backward);
+			}
+			if (e.which == arrowKey.right) { 
+			   game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
+			}
+			if (e.which == arrowKey.left) { 
+			   game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+			}
+		};
+		})(game));
+	}
     
 	// remove existing layout classes
 	var layoutRemover = function (index, className) {

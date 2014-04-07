@@ -161,39 +161,42 @@ wumpusGame.createTileElement = function(gridUI, tile) {
             this.removeClass("tile_notvisited");
         }
         
-        // set text
-        var text = "";
+		if (tile.visited || this.gridUI.gameUI.visibility == wumpusGame.WumpusUI.Visibility.All) {
+			// render objects and object indicators
+			var text = "";
+			
+			if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
+				text += "W ";
+			}
+			if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
+				text += "G ";
+			}
+			if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
+				text += "P ";
+			}
+			if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
+				text += "B ";
+			}
+			if (tile.hasTileFlag(wumpusGame.TileFlags.Stench)) {
+				text += "s ";
+			}
+			if (tile.hasTileFlag(wumpusGame.TileFlags.Breeze)) {
+				text += "b ";
+			}
+			if (tile.hasTileFlag(wumpusGame.TileFlags.FlappingNoise)) {
+				text += "f ";
+			}
         
-        if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
-            text += "W ";
-        }
-        if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
-            text += "G ";
-        }
-        if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
-            text += "P ";
-        }
-        if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
-            text += "B ";
-        }
-        if (tile.hasTileFlag(wumpusGame.TileFlags.Stench)) {
-            text += "s ";
-        }
-        if (tile.hasTileFlag(wumpusGame.TileFlags.Breeze)) {
-            text += "b ";
-        }
-        if (tile.hasTileFlag(wumpusGame.TileFlags.FlappingNoise)) {
-            text += "f ";
-        }
-        
-        var w = tileEl.innerWidth();
-        var shortText = squishy.truncateText(text, "14px arial", w);
-        this.textCont = $(document.createElement("div"));
-        this.textCont.css("position", "absolute");
-        squishy.appendText(this.textCont[0], shortText);
-        tileEl[0].appendChild(this.textCont[0]);
-        tileEl.attr("title", text);
-        
+			var w = tileEl.innerWidth();
+			var shortText = squishy.truncateText(text, "14px arial", w);
+			this.textCont =  this.textCont || $(document.createElement("div"));
+			this.textCont.css("position", "absolute");
+			this.textCont[0].innerHTML = shortText;
+			if (!this.textCont[0].parentNode) {
+				tileEl[0].appendChild(this.textCont[0]);
+			}
+			tileEl.attr("title", text);
+		}
         
         // add other decorations
         this.gridUI.gameUI.updateTileStyle(this);
