@@ -37,9 +37,36 @@ wumpusGame.UserScript.prototype.run = function() {
  /**
   * Constructs a ScriptContext object which determines how a script is executed.
   * 
-  * @param {Object=} config The optional configuration for the script context.
-  * @param {Element=} [config.text] The underlying DOM element of the grid.
+  * @constructor
+  * @param {Object} config The configuration for the script context.
+  * @param {Object} [config.game] The game object.
   */
-wumpusGame.ScriptContext = function(config) {
-    // TODO
+wumpusGame.WorkerScriptContext = function(config) {
+    squishy.assert(config.game, "config.game is not defined");
+
+    // copy config into this context
+    config.clone(this, false);
+
+    // create new worker
+    this.worker = new Worker();
+    this.worker.onmessage = function(evt) {
+        var data = evt.data;
+        
+    };
+};
+
+/**
+ * This function is run in the worker.
+ * IMPORTANT: It will have an entirely different context.
+ */
+wumpusGame.WorkerScriptContext.runWorker = function() {
+};
+
+ /**
+  * Runs the given script in this context.
+  * 
+  * @param {wumpusGame.UserScript} config The configuration for the script context.
+  */
+wumpusGame.WorkerScriptContext.prototype.runScript = function(script) {
+    
 };
