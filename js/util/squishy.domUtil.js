@@ -382,7 +382,9 @@ squishy.addShadow = function(targetEl, thicknessPx, color, blurPx, spreadPx) {
 // JQuery
 
 // add some utilities to jQuery
-if (jQuery) {
+//if (jQuery) {
+
+require(["jquery"], function(jQuery) {
     $( document ).ready(function() {
         // add centering functionality to jQuery components
         // see: http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file
@@ -428,4 +430,4 @@ if (jQuery) {
           return width;
         };
     });
-}
+});

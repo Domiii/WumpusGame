@@ -5,47 +5,11 @@
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<title>Wumpus.js</title>
     <link rel="shortcut icon" href="img/wumpus.png">
-    
-	
-    <!-- External Libraries -->
-    <!-- ACE editor -->
-    <script src="lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
-    <!-- jQuery -->
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
-	<!-- 
-    <script src="lib/jquery/jquery-ui-1.10.4.js"></script>
-    <script src="lib/jquery/jquery.layout-1.3.0-rc30.79.js"></script>
-	 -->
-    
-    <script src="lib/jquery/jquery-ui-1.10.4.min.js"></script>
-	<script src="lib/jquery/jquery.layout-1.3.0-rc30.79.min.js"></script>
 	
     <link rel="stylesheet" type="text/css" href="lib/jquery/jquery-ui.css" />
 	
-	
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/defaultstyle.css" />
-    
-    
-    <!-- Utilities -->
-    <script src="js/util/squishy.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/util/squishy.util.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/util/squishy.domUtil.js" type="text/javascript" charset="utf-8"></script>
-    
-    <!-- Game Core files -->
-    <script src="js/core/WumpusGame.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/core/UserScript.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/core/Tile.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/core/Grid.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/core/Player.js" type="text/javascript" charset="utf-8"></script>
-    
-    <!-- Game UI files -->
-    <script src="js/ui/WumpusUI.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/ui/GridUI.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/ui/ScriptEditorUI.js" type="text/javascript" charset="utf-8"></script>
-    
-    <!-- Game User code files -->
-    <script src="js/user/DefaultWorldGenerator.js" type="text/javascript" charset="utf-8"></script>
 </head>
 
 
@@ -84,100 +48,6 @@ function foo(items) {
     <div id="wumpus-grid-tile" class="tile" style="display:none;">
     </div>
     
-    <!-- Initialization -->
-    <script>
-		"use strict";
-		
-		var editor = ace.edit("script-editor");
-		editor.setTheme("ace/theme/monokai");
-		editor.getSession().setMode("ace/mode/javascript");
-	
-        // get UI elements
-        var gameEl = squishy.getElementByIdOrDie("wumpus-game");
-        var gridEl = squishy.getElementByIdOrDie("wumpus-grid");
-        var playerEl = squishy.getElementByIdOrDie("wumpus-player");
-        var toolsEl = squishy.getElementByIdOrDie("wumpus-tools");
-        var tileElTemplate = squishy.getElementByIdOrDie("wumpus-grid-tile");
-        var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
-        
-		// TODO: Layout - http://jsfiddle.net/MjZ2F/
-		
-        // ####################################################################################################
-        // configure the Game
-        var coreConfig = {
-            // configure the grid
-            gridConfig : {
-                width : 5,
-                height : 5
-            },
-            
-            // configure the initial player state
-            playerState : {
-                position : [0, 0],
-                direction : wumpusGame.Direction.Down,
-                ammo : 1,
-                score : 0
-            }
-        };
-        
-        // configure the UI
-        var uiConfig = {
-			visiblity : wumpusGame.WumpusUI.Visibility.AllFoggy,
-            gameEl : gameEl,
-            playerEl : playerEl,
-            toolsEl : toolsEl,
-                
-            // configure the grid UI
-            gridUIConfig : {
-                gridEl : gridEl,
-                tileElTemplate : tileElTemplate,
-                gridMinSize : [500, 500],            // width and height in pixels
-                tileMinSize : [60, 60]              // width and height in pixels
-            },
-            
-            // configure the script editor
-            scriptEditorUIConfig : {
-                editorEl : scriptEditorEl
-            }
-        };
-        
-        
-        // ####################################################################################################
-        // setup buttons
-        
-        // get all buttons
-        var btnForward = squishy.getElementByIdOrDie("wumpus-forward");
-        var btnBackward = squishy.getElementByIdOrDie("wumpus-backward");
-        var btnTurnCW = squishy.getElementByIdOrDie("wumpus-turncw");
-        var btnTurnCCW = squishy.getElementByIdOrDie("wumpus-turnccw");
-        
-        // assign actions to buttons
-        squishy.onClick(btnForward, function(evt) {
-            game.player.performAction(wumpusGame.PlayerAction.Forward);
-        });
-        squishy.onClick(btnBackward, function(evt) {
-            game.player.performAction(wumpusGame.PlayerAction.Backward);
-        });
-        squishy.onClick(btnTurnCW, function(evt) {
-            game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
-        });
-        squishy.onClick(btnTurnCCW, function(evt) {
-            game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
-        });
-        
-        // ####################################################################################################
-        // create & start the game
-        var game = new wumpusGame.WumpusGame();
-        
-        // start game
-        game.restart(coreConfig, uiConfig);
-        
-        // do something
-        game.player.performAction(wumpusGame.PlayerAction.Forward);
-        game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
-        game.player.performAction(wumpusGame.PlayerAction.Forward);
-    </script>
-    
     
     <!-- Explain the background -->
     <h3>Wumpus Game for Learning AI</h3>
@@ -189,6 +59,10 @@ function foo(items) {
     <h3>Credit</h3>
     <p>Created by Dominik Seifert, National Taiwan University.
     <p>some of the imagery was created by Mark Proctor. Check out <a href="http://blog.athico.com/2012/01/wumpus-world.html">his blog here</a>.
+	
+    
+    <!-- Start loading game -->
+    <script data-main="js/AppStarter.js" src="lib/require.min.js"></script>
 </body>
 
 </html>

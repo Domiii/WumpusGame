@@ -9,5 +9,5 @@
   */
 wumpusGame.WorldGenerator = function(config) {
     // shallow copy config into this object
-    config.clone(false, this);
+    squishy.clone(config, false, this);
 };

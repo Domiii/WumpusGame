@@ -13,7 +13,7 @@ wumpusGame.Player = function(game, state) {
     this.game = game;
     
     // shallow copy state into this object
-    state.clone(false, this);
+    squishy.clone(state, false, this);
     
     this.actionLog = [];
     

@@ -18,7 +18,7 @@ wumpusGame.Grid = function(game, config) {
     squishy.assert(config.height > 0, "config.height is not a number greater than zero");
     
     // shallow-copy config options into this object
-    config.clone(false, this);
+    squishy.clone(config, false, this);
     
     this.game = game;
 	

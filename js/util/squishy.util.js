@@ -61,77 +61,31 @@ squishy.concatPath = function(file1, file2/*, fileN */) {
     return path;
 };
 
-
-// ##############################################################################################################
-// Arrays
-
-/**
- * Creates an array of given size.
- * If the optional defaultVal parameter is supplied,
- * initializes every element with it.
- * NOTE: There is a design bug in Google's V8 JS engine that sets an arbitrary threshold of 99999 to be the max size for array pre-allocation.
- * @param {number} size Number of elements to be allocated.
- * @param {Object=} defaultVal Optional value to be used to set all array elements.
- */
-squishy.createArray = function(size, defaultVal) {
-	try {
-		var arr = new Array(size);
-		if (arguments.length == 2) {
-			// optional default value
-			for (var i = 0; i < size; ++i) {
-				if (typeof defaultVal == "object")
-					arr[i] = defaultVal.clone(false);     // shallow-copy default value
-				else
-					arr[i] = defaultVal;                        // simply copy it
-			}
-		}
-	}
-	catch (excep) {
-		console.log("Could not create array of size: " + size);
-		throw excep;
-	}
-    return arr;
-};
-
-/**
- * @see http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
- */
-Array.prototype.shuffle = function() {
-    for(var j, x, i = this.length; i; j = Math.floor(Math.random() * i), x = this[--i], this[i] = this[j], this[j] = x);
-};
-
-
 // ##############################################################################################################
 // Object
 
-Object.defineProperty(Object.prototype, "clone", {
-    enumerable: false,
-    configurable: false,
-    writable: false,
-    value:
-        /**
-         * Adds a copy method to every object.
-         * @param newObj The object to clone all properties to.
-         * @param {bool} deepCopy Whether to deep-copy elements (true by default).
-         */
-        function(deepCopy, newObj) {
-            if (arguments.length === 0) {
-                deepCopy = true;
-            }
+	/**
+	 * Adds a copy method to every object.
+	 * @param newObj The object to clone all properties to.
+	 * @param {bool} deepCopy Whether to deep-copy elements (true by default).
+	 */
+squishy.clone = function(obj, deepCopy, newObj) {
+	if (arguments.length === 0) {
+		deepCopy = true;
+	}
 
-            newObj = newObj || ((this instanceof Array) ? [] : {});
+	newObj = newObj || ((obj instanceof Array) ? [] : {});
 
-            for (var i in this) {
-                if (deepCopy && typeof this[i] == "object") {
-                    newObj[i] = this[i].clone();
-                }
-                else {
-                    newObj[i] = this[i];
-                }
-            }
-            return newObj;
-        }
-});
+	for (var i in obj) {
+		if (deepCopy && typeof obj[i] == "object") {
+			newObj[i] = squishy.clone(obj[i], true);
+		}
+		else {
+			newObj[i] = obj[i];
+		}
+	}
+	return newObj;
+};
 
 Object.defineProperty(Object.prototype, "getObjectPropertyCount", {
     enumerable: false,
@@ -310,6 +264,54 @@ squishy.extractFolder = function(path) {
 
 
 // ##############################################################################################################
+// Arrays
+
+/**
+ * Creates an array of given size.
+ * If the optional defaultVal parameter is supplied,
+ * initializes every element with it.
+ * NOTE: There is a design bug in Google's V8 JS engine that sets an arbitrary threshold of 99999 to be the max size for array pre-allocation.
+ * @param {number} size Number of elements to be allocated.
+ * @param {Object=} defaultVal Optional value to be used to set all array elements.
+ */
+squishy.createArray = function(size, defaultVal) {
+	try {
+		var arr = new Array(size);
+		if (arguments.length == 2) {
+			// optional default value
+			for (var i = 0; i < size; ++i) {
+				if (typeof defaultVal == "object")
+					arr[i] = squishy.clone(defaultVal, false);     // shallow-copy default value
+				else
+					arr[i] = defaultVal;                        // simply copy it
+			}
+		}
+	}
+	catch (excep) {
+		console.log("Could not create array of size: " + size);
+		throw excep;
+	}
+    return arr;
+};
+
+/**
+ * Removes the given item from the given array, if it exists.
+ */
+squishy.removeItem = function(arr, item) {
+	var idx = arr.indexOf(item);
+	if (idx >=0) {
+		array.splice(idx, 1);
+	}
+};
+
+/**
+ * @see http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
+ */
+Array.prototype.shuffle = function() {
+    for(var j, x, i = this.length; i; j = Math.floor(Math.random() * i), x = this[--i], this[i] = this[j], this[j] = x);
+};
+
+// ##############################################################################################################
 // Stable merge sort
 
 // Add stable merge sort to Array prototypes.
@@ -393,10 +395,51 @@ squishy.extractFolder = function(path) {
 /**
  * Returns the current system time in milliseconds for global synchronization and timing events.
  */
-squishy.getCurrentTimeMillis = function()
-{
+squishy.getCurrentTimeMillis = function() {
     return new Date().getTime();
 };
+
+
+// ##############################################################################################################
+// Events
+
+/**
+ * Creates a new event, representing a list of event handler callbacks.
+ */
+squishy.Event = function() {
+    var Event = function(self) {
+		this.self = self;
+		this.listeners = [];
+	};
+	
+	Event.prototype = {
+		/**
+		 * Adds the given callback function to this event.
+		 */
+		addListener : function(listener) {
+			this.listeners.push(listener);
+		},
+		
+		/**
+		 * Removes the given callback function from this event.
+		 */
+		removeListener : function(listener) {
+			squishy.removeItem(this.listeners, listener);
+		},
+		
+		/**
+		 * Calls all event handlers of this event with all given arguments, and this = the object given in the event constructor.
+		 */
+		notify : function() {
+			for (var i = 0; i < this.listeners.length; ++i) {
+				var listener = this.listeners[i];
+				listener.apply(this.self, arguments);
+			}
+		}
+	};
+	
+	return Event;
+}();
 
 
 // ##############################################################################################################

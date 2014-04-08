@@ -19,7 +19,7 @@ wumpusGame.DefaultWorldGenerator = function(config) {
     squishy.setIfUndefined(config, "nWumpuses", 1);         // Default: 1
     
     // shallow copy config into this object
-    config.clone(false, this);
+    squishy.clone(config, false, this);
     
 };
 

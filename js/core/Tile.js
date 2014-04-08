@@ -45,6 +45,9 @@ wumpusGame.Tile = function(grid, x, y, objects, tileFlags) {
     this.grid = grid;
 	this.tilePosition = [x, y];
     this.clearTile();
+	
+	// Set unique tile id. This can be used to more easily identify this tile.
+	this.tileId = y * grid.width + x;
 };
 
 /**
@@ -139,10 +142,8 @@ wumpusGame.Tile.prototype.markTileVisited = function(visited) {
 };
 
 /**
- * Notifies that this tile has changed.
+ * Notify listeners that this tile has changed.
  */
 wumpusGame.Tile.prototype.notifyTileChanged = function() {
-    if (this.grid.game.ui) {
-        this.grid.game.ui.gridUI.updateTileStyle(this.tilePosition[0], this.tilePosition[1]);
-    }
+	this.grid.game.events.tileChanged(this);
 };

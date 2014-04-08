@@ -6,7 +6,6 @@
  
 // create the squishy namespace
 var squishy = squishy || {};
-
 /**
  * Exports the given object into the global context.
  */
@@ -26,3 +25,12 @@ squishy.exportGlobal = function(name, object) {
 
 // export squishy itself
 squishy.exportGlobal("squishy", squishy);
+
+
+// require other squishy-related files
+
+// TODO: http://stackoverflow.com/questions/18163413/how-to-make-a-requirejs-module-with-multiple-files
+
+define(["./squishy.util.js", "./squishy.domUtil.js"], function() {
+	return squishy;
+});

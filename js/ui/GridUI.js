@@ -26,7 +26,7 @@ wumpusGame.makeGridUI = function(gameUI, config) {
 	var gridUI = $(config.gridEl);
 
 	// shallow-copy config options into the grid element.
-	config.clone(false, gridUI);
+	squishy.clone(config, false, gridUI);
 	gridUI.gameUI = gameUI;
 	
 	
