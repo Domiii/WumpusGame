@@ -4,11 +4,12 @@
  
 "use strict";
 
+
 // load everything and go
-define(["squishy/squishy", "js/core/WumpusGame"], function() {
+define(["js/core/WumpusGame"], function() {
 	// ####################################################################################################
 	// configure the game
-
+	
 	var coreConfig = {
 		// configure the grid
 		gridConfig : {

@@ -1,5 +1,6 @@
 /**
- * This file contains capabilities for (safe and) simple editing & running of user-supplied scripts.
+ * This file provides the UI for an instance of ACE script editor.
+ * The API can be found here: http://ace.c9.io/#nav=api&api=editor
  */
 "use strict";
  
@@ -36,14 +37,21 @@
 		scriptEditor.editorEl = $(config.editorEl);							// this is the actual editor
 		scriptEditor.editorContainerEl = $(config.editorEl.parentNode);		// this is the top-level node of the editor
 		
+		scriptEditor.setShowPrintMargin(true);
+		scriptEditor.setHighlightActiveLine(true);
+		
 		
 		// ################################################################################################################
 		// Script Editor UI functions
+		
+		// TODO: Notifications
+		// scriptEditor.
 		
 		/**
 		 * Update script editor layout
 		 */
 		scriptEditor.updateScriptEditorLayout = function() {
+			this.resize(true);
 		};
 		
 		return scriptEditor;

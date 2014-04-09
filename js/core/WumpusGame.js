@@ -8,8 +8,7 @@
  */
 squishy.exportGlobal("wumpusGame", {});
 
-
-define(["./Tile", "./Grid",  "./Player", "./ScriptWorker", "../user/DefaultWorldGenerator"], function() {
+define(["./Tile", "./Grid",  "./Player", "./WorkerScriptContext", "../user/DefaultWorldGenerator"], function(Tile, Grid, Player, WorkerScriptContext) {
 	/**
 	 * In the wumpus game, there are only four directions.
 	 * @const
@@ -93,6 +92,7 @@ define(["./Tile", "./Grid",  "./Player", "./ScriptWorker", "../user/DefaultWorld
 		// create core objects
 		this.grid = new wumpusGame.Grid(this, coreConfig.gridConfig);
 		this.player = new wumpusGame.Player(this, coreConfig.playerState);
+		this.scriptContext = new WorkerScriptContext(this);
 		
 		// create event objects
 		this.events = {
@@ -113,6 +113,9 @@ define(["./Tile", "./Grid",  "./Player", "./ScriptWorker", "../user/DefaultWorld
 		
 		// initialize player
 		this.player.initializePlayer();
+		
+		// start script worker
+		this.scriptContext.startWorker();
 		
 		// notify all listeners
 		this.events.restart.notify();

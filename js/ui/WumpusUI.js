@@ -32,7 +32,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		this.gameEl = $(config.gameEl);
 		this.playerEl = $(config.playerEl);
 		this.toolsEl = $(config.toolsEl);
-		this.scriptEditorUI = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
+		this.scriptEditor = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
 		this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
 		
 		// setup listeners
@@ -82,7 +82,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		var northContExisted = !!this.northCotainer;
 		var northCont = this.northCotainer || $(document.createElement("div"));
 		
-		// add key handler
+		// add key handlers
 		if (!northContExisted) {
 			var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
 			$(document).keydown((function(game) { return function(e){
@@ -98,6 +98,9 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 				if (e.which == arrowKey.left) { 
 				   game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
 				}
+				if (e.which == 'r') {
+					
+				}
 			};
 			})(this.game));
 		}
@@ -107,7 +110,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 			return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
 		};
 		this.gridUI.removeClass(layoutRemover);
-		this.scriptEditorUI.editorEl.removeClass(layoutRemover);
+		this.scriptEditor.editorEl.removeClass(layoutRemover);
 		northCont.removeClass(layoutRemover);
 		
 		// re-compute layout
@@ -117,7 +120,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		this.gridUI.addClass("ui-layout-center");
 		this.toolsEl.addClass("ui-layout-east");
 		northCont.addClass("ui-layout-center");
-		this.scriptEditorUI.editorContainerEl.addClass("ui-layout-east");
+		this.scriptEditor.editorContainerEl.addClass("ui-layout-east");
 		
 		// restructure layout
 		northCont.append(this.gridUI);
@@ -165,7 +168,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		//this.UILayout.sizePane('south', totalH/2);
 		
 		this.gridUI.updateGridLayout();
-		this.scriptEditorUI.updateScriptEditorLayout();
+		this.scriptEditor.updateScriptEditorLayout();
 	};
 
 	/**
@@ -208,6 +211,19 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		
 		// add as first child of tileEl
 		tileEl.prepend(this.playerEl);
+	};
+	
+	
+	// ##############################################################################################################
+	// Complex UI interactions
+	
+	/**
+	 * Runs the script that is currently present in the editor.
+	 */
+	wumpusGame.WumpusUI.prototype.runUserScript = function() {
+		this.scriptEditor.getSession().clearAnnotations();
+		var code = this.scriptEditor.getSession().getValue();
+		this.game.scriptContext.runScript(new wumpusGame.UserScript({codeString: code}));
 	};
 	
 	return wumpusGame;

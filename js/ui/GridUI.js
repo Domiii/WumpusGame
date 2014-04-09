@@ -3,7 +3,6 @@
  */
 "use strict";
  
-
  /**
   * Promotes the given grid DOM element to a full blown grid UI.
   *

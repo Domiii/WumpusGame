@@ -64,24 +64,52 @@ squishy.concatPath = function(file1, file2/*, fileN */) {
 // ##############################################################################################################
 // Object
 
-	/**
-	 * Adds a copy method to every object.
-	 * @param newObj The object to clone all properties to.
-	 * @param {bool} deepCopy Whether to deep-copy elements (true by default).
-	 */
+/**
+ * Clones the given object.
+ * @param newObj The object to clone all properties to.
+ * @param {bool} deepCopy Whether to deep-copy elements (true by default).
+ */
 squishy.clone = function(obj, deepCopy, newObj) {
-	if (arguments.length === 0) {
+	if (arguments.length === 1) {
 		deepCopy = true;
 	}
 
 	newObj = newObj || ((obj instanceof Array) ? [] : {});
 
 	for (var i in obj) {
-		if (deepCopy && typeof obj[i] == "object") {
+		if (deepCopy && obj[i].getFirstProperty()) {
+			// obj[i] is an object
 			newObj[i] = squishy.clone(obj[i], true);
 		}
 		else {
 			newObj[i] = obj[i];
+		}
+	}
+	return newObj;
+};
+
+/**
+ * Clones the given object. Ignores all properties (also of children) that do not pass the filter.
+ * @param newObj The object to clone all properties to.
+ * @param {bool} deepCopy Whether to deep-copy elements (true by default).
+ */
+squishy.cloneFiltered = function(obj, filter, deepCopy, newObj) {
+	if (arguments.length === 2) {
+		deepCopy = true;
+	}
+
+	newObj = newObj || ((obj instanceof Array) ? [] : {});
+
+	for (var i in obj) {
+		var prop = obj[i];
+		if (!filter(prop)) continue;
+		
+		if (deepCopy && prop.getFirstProperty()) {
+			// obj[i] is an object
+			newObj[i] = squishy.clone(obj[i], true);
+		}
+		else {
+			newObj[i] = prop;
 		}
 	}
 	return newObj;
@@ -119,7 +147,7 @@ Object.defineProperty(Object.prototype, "hasProperty", {
          * @param key
          */
         function(key) {
-            return this.getObjectPropertyCount(this.key) === 0;
+            return this.getObjectPropertyCount(key) === 0;
         }
 });
 
@@ -130,11 +158,28 @@ Object.defineProperty(Object.prototype, "getFirstProperty", {
     writable: false,
     value:
         /**
-         * Returns the first property of the given object.
+         * Returns the first property of the given object, or null if it has none.
          */
         function() {
             for (var prop in this)
                 return this[prop];
+			return null;
+        }
+});
+
+
+Object.defineProperty(Object.prototype, "hasAnyProperty", {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value:
+        /**
+         * Returns the first property of the given object, or null if it has none.
+         */
+        function() {
+            for (var prop in this)
+                return true;
+			return false;
         }
 });
 
@@ -238,8 +283,7 @@ squishy.removeFlag = function(flags, oldFlag) {
  *
  * @see http://stackoverflow.com/questions/5448545/how-to-retrieve-get-parameters-from-javascript
  */
-squishy.retrieveURLArguments = function()
-{
+squishy.retrieveURLArguments = function() {
     var prmstr = window.location.search.substr(1);
     var prmarr = prmstr.split ("&");
     var params = {};

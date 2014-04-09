@@ -6,21 +6,31 @@
  
 // create the squishy namespace
 var squishy = squishy || {};
+
+
 /**
- * Exports the given object into the global context.
+ * Returns the global context object.
  */
-squishy.exportGlobal = function(name, object) {
+squishy.getGlobalContext = function() {
 	if (typeof(GLOBAL) !== "undefined")  {
 		// Node.js
-		GLOBAL[name] = object;
+		return GLOBAL;
 	}
 	else if (typeof(window) !== "undefined") {
 		// JS with GUI (usually browser)
-		window[name] = object;
+		return window;
 	}
 	else {
 		throw new Error("Unkown run-time environment. Currently only browsers and Node.js are supported.");
 	}
+};
+
+/**
+ * Exports the given object of the given name into the global context.
+ */
+squishy.exportGlobal = function(name, object) {
+	var global = squishy.getGlobalContext();
+	global[name] = object;
 };
 
 // export squishy itself

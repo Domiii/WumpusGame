@@ -4,7 +4,7 @@
  */
 "use strict";
 
-// configure require
+// configure requirejs
 require.config({
 	baseUrl : "",
 	paths : {
@@ -24,8 +24,9 @@ require.config({
 	}
 });
 
-// start the game
-define(["squishy/squishy", "js/GameLoader", "WumpusUI/WumpusUI"], function(squishy, game) {
+
+// load game and initialize UI
+require(["squishy/squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
 	/** Game UI files */
 
 	// ####################################################################################################
@@ -59,6 +60,13 @@ define(["squishy/squishy", "js/GameLoader", "WumpusUI/WumpusUI"], function(squis
 		}
 	};
 	
+	// create UI
+	var ui = new wumpusGame.WumpusUI(game, uiConfig);
+	
+	// re-compute layout and style
+	ui.resetLayout();
+	
+	
 	
 	// ####################################################################################################
 	// setup buttons
@@ -68,6 +76,7 @@ define(["squishy/squishy", "js/GameLoader", "WumpusUI/WumpusUI"], function(squis
 	var btnBackward = squishy.getElementByIdOrDie("wumpus-backward");
 	var btnTurnCW = squishy.getElementByIdOrDie("wumpus-turncw");
 	var btnTurnCCW = squishy.getElementByIdOrDie("wumpus-turnccw");
+	var btnRun = squishy.getElementByIdOrDie("wumpus-run");
 
 	// assign actions to buttons
 	squishy.onClick(btnForward, function(evt) {
@@ -82,13 +91,7 @@ define(["squishy/squishy", "js/GameLoader", "WumpusUI/WumpusUI"], function(squis
 	squishy.onClick(btnTurnCCW, function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
 	});
-	
-	// create UI
-	var ui = new wumpusGame.WumpusUI(game, uiConfig);
-	
-	// re-compute layout and style
-	ui.resetLayout();
-	
-	// return the created ui
-	return ui;
-});
+	squishy.onClick(btnRun, function(evt) {
+		ui.runUserScript();
+	});
+});});});
