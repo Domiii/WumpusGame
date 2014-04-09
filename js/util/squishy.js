@@ -31,6 +31,6 @@ squishy.exportGlobal("squishy", squishy);
 
 // TODO: http://stackoverflow.com/questions/18163413/how-to-make-a-requirejs-module-with-multiple-files
 
-define(["./squishy.util.js", "./squishy.domUtil.js"], function() {
+define(["./squishy.util", "./squishy.domUtil"], function() {
 	return squishy;
 });

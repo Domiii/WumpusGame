@@ -3,7 +3,7 @@
  */
 "use strict";
  
-define(["WumpusGame", "jquery", "jquery_ui", "jquery_ui_layout", "GridUI", "ScriptEditorUI"], function() {
+define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout"], function() {
 	 /**
 	  * Creates a new WumpusUI object for managing the UI of the WumpusGame.
 	  *
@@ -36,13 +36,13 @@ define(["WumpusGame", "jquery", "jquery_ui", "jquery_ui_layout", "GridUI", "Scri
 		this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
 		
 		// setup listeners
-		this.game.events.tileChanged.addEventListener((function(ui) {
+		this.game.events.tileChanged.addListener((function(ui) {
 			return function(tile) {
 				// update tile rendering
 				ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
 			}
 		})(this));
-		this.game.events.restart.addEventListener((function(ui) {
+		this.game.events.restart.addListener((function(ui) {
 			return function() {
 				// reset all tiles
 				ui.game.grid.foreachTile(function(tile) {

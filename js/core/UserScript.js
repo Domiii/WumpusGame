@@ -3,10 +3,7 @@
  */
  "use strict";
 
-require(
-//["ScriptWorker"]
-[], function () {
-//require(["./ScriptWorker"], function () {
+require(["./core/ScriptWorker"], function () {
 	 /**
 	  * Creates a new instance of a user-supplied script.
 	  * A (user-supplied) script is just a string that can be edited by a script editor and interpreted by Google Caja.

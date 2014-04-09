@@ -9,7 +9,7 @@ require.config({
 	baseUrl : "",
 	paths : {
 		squishy: "js/util",
-		WumpusGame: "js/core",
+		WumpusGame: "js",
 		WumpusUI: "js/ui",
 		
 		ace: "lib/ace",
@@ -25,7 +25,7 @@ require.config({
 });
 
 // start the game
-define(["squishy", "js/GameLoader", "WumpusUI"], function(squishy, game) {
+define(["squishy/squishy", "js/GameLoader", "WumpusUI/WumpusUI"], function(squishy, game) {
 	/** Game UI files */
 
 	// ####################################################################################################

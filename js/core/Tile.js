@@ -145,5 +145,5 @@ wumpusGame.Tile.prototype.markTileVisited = function(visited) {
  * Notify listeners that this tile has changed.
  */
 wumpusGame.Tile.prototype.notifyTileChanged = function() {
-	this.grid.game.events.tileChanged(this);
+	this.grid.game.events.tileChanged.notify(this);
 };

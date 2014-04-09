@@ -9,7 +9,7 @@
 squishy.exportGlobal("wumpusGame", {});
 
 
-define(["Tile", "Grid", "ScriptWorker", "../user/DefaultWorldGenerator"], function() {
+define(["./Tile", "./Grid",  "./Player", "./ScriptWorker", "../user/DefaultWorldGenerator"], function() {
 	/**
 	 * In the wumpus game, there are only four directions.
 	 * @const

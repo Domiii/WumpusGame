@@ -5,7 +5,7 @@
 "use strict";
 
 // load everything and go
-define(["squishy/squishy", "WumpusGame/WumpusGame"], function() {
+define(["squishy/squishy", "js/core/WumpusGame"], function() {
 	// ####################################################################################################
 	// configure the game
 
