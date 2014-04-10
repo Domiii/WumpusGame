@@ -8,28 +8,30 @@
 /**
  * @const
  */
-var evalFunctionName = "doEval";
+this.evalFunctionName = "runScript";
 
 
 /**
- * Eval the given text.
+ * Evals the given text with proper error handling.
  */
-this.doEval = function(text) {
+this.runScript = function(text) {
 	try {
+        // override some vars
+        var postMessage, onmessage;
+        
 		// TODO: Improve security. Consider ADSAFE, JSLint etc.
 		eval(text);
 	} catch (err) {
-		// var trace = printStackTrace({e: err});
-		// console.log(err.stack);
 		var trace = printStackTrace({e: err});
 		//console.log(trace.join("\n"));
 		var args = {message: err.message, stacktrace: [] };
 		var inEval = true;
 		for (var i = 0; i < trace.length; ++i) {
 			// Each line has the format: "functionName@url:line:column"
-			// Ignore everything but actual eval call.
 			var line = trace[i];
 			var functionName = line.split("@", 1)[0].split(" ", 1)[0];
+            
+			// Ignore everything but actual eval call.
 			if (inEval) {
 				var info = line.split(":");
 				var line = parseInt(info[info.length-2]);
@@ -41,15 +43,10 @@ this.doEval = function(text) {
 				inEval = false;
 			}
 		}
-		if (args.length == 0) {
-			// either the parser was unable to parse the code and no extra information was generated (happens in webkit), or there is something wrong in this file
-			postMessage({command: "error_static", args: args});
-			throw err;			// throw the error anyway
-		}
-		else {
-			// run-time error
-			postMessage({command: "error_runtime", args: args});
-		}
+        
+        // run-time error
+        console.log(args.stringify());
+        postMessage({command: "error_eval", args: args});
 	}
 };
 
@@ -57,15 +54,13 @@ this.doEval = function(text) {
  * Calling this function lets the agent move forward.
  */
 this.moveForward = function() {
-	postMessage({command: "action", args: PlayerAction.Forward});
+	postMessage({command: "action", args: wumpusGame.PlayerAction.Forward});
 };
 
 /**
  * This function is initially and anonymously called to initialize this Worker.
  */
 (function() {
-	var baseUrl = "../..";
-	
 	// // import require.js if not present already
 	// if (typeof require === "undefined") {
 		// importScripts(baseUrl + "/lib/require.min.js");
@@ -84,7 +79,26 @@ this.moveForward = function() {
 		var args = event.data.args;
 		switch (cmd) {
 			case "init":
-				importScripts("http://localhost/lib/stacktrace.js");
+                var baseUrl = args;
+                
+                // import some standard libraries
+				importScripts(baseUrl + "lib/stacktrace.js");
+				importScripts(baseUrl + "lib/require.js");
+                
+                // configure requirejs
+                require.config({
+                    baseUrl : baseUrl,
+                    paths : {
+                        Util: "js/util",
+                        WumpusGame: "js",
+                    },
+                    shim: {
+                    }
+                });
+                
+                // import game constants
+				require([baseUrl + "js/core/WumpusGame.Def.js"]);
+                
 				// TODO: Load enums and some other game context
 				// TODO: Don't do anything before initialization has completed
 				break;

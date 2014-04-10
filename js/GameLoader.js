@@ -6,7 +6,7 @@
 
 
 // load everything and go
-define(["js/core/WumpusGame"], function() {
+define(["WumpusGame/core/WumpusGame"], function() {
 	// ####################################################################################################
 	// configure the game
 	

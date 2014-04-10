@@ -1,99 +1,102 @@
 "use strict";
 
- /**
-  * Constructs a new WorldGenerator base class.
-  * 
-  * @param {Object} config Generator configuration.
-  * @param {Number} [config.nPitRatio] A number between 0 and 1. The ratio of pits to total amount of tiles. This should be less than 0.5. Default = 0.2.
-  * @param {Number} [config.nBatsRatio] A number between 0 and 1. The ratio of bat swarms to total amount of tiles. This should be less than 0.5. Default = 0.02.
-  * @param {Number} [config.nGold] The number of gold bars. Default = 1.
-  * @param {Number} [config.nWumpuses] The number of Wumpuses. Default = 1.
-  */
-wumpusGame.DefaultWorldGenerator = function(config) {
-    config = config || {};
-   
-    // set config defaults
-    squishy.setIfUndefined(config, "nPitRatio", 0.20);      // Default: For 10 squares, we want 2 pits
-    squishy.setIfUndefined(config, "nBatsRatio", 0.02);     // Default: For 100 squares, we want 2 bat swarms
-    squishy.setIfUndefined(config, "nGold", 1);             // Default: 1
-    squishy.setIfUndefined(config, "nWumpuses", 1);         // Default: 1
-    
-    // shallow copy config into this object
-    squishy.clone(config, false, this);
-    
-};
+define(["../core/WumpusGame.Def"], function(wumpusGame) {
+     /**
+      * Constructs a new WorldGenerator base class.
+      * 
+      * @param {Object} config Generator configuration.
+      * @param {Number} [config.nPitRatio] A number between 0 and 1. The ratio of pits to total amount of tiles. This should be less than 0.5. Default = 0.2.
+      * @param {Number} [config.nBatsRatio] A number between 0 and 1. The ratio of bat swarms to total amount of tiles. This should be less than 0.5. Default = 0.02.
+      * @param {Number} [config.nGold] The number of gold bars. Default = 1.
+      * @param {Number} [config.nWumpuses] The number of Wumpuses. Default = 1.
+      */
+    wumpusGame.DefaultWorldGenerator = function(config) {
+        config = config || {};
+       
+        // set config defaults
+        squishy.setIfUndefined(config, "nPitRatio", 0.20);      // Default: For 10 squares, we want 2 pits
+        squishy.setIfUndefined(config, "nBatsRatio", 0.02);     // Default: For 100 squares, we want 2 bat swarms
+        squishy.setIfUndefined(config, "nGold", 1);             // Default: 1
+        squishy.setIfUndefined(config, "nWumpuses", 1);         // Default: 1
+        
+        // shallow copy config into this object
+        squishy.clone(config, false, this);
+        
+    };
 
-/**
- * Populates the given game instance.
- */
-wumpusGame.DefaultWorldGenerator.prototype.genWorld = function(game) {
-    //this.game = game;
-    
-    var w = game.grid.width;
-    var nTiles = w * game.grid.height;
-    var nPits = Math.ceil(nTiles * this.nPitRatio);
-    var nBats = Math.ceil(nTiles * this.nBatsRatio);
-    var nGold = this.nGold;
-    var nWumpuses = this.nWumpuses;
-    
-    // generate random tile indices for pits, bats, gold and Wumpuses
-    // TODO: To improve performance, use rejection-based algorithm for small and shuffle-based algorithm for large ratios
-    
     /**
-     * Generates n random numbers between nMin and nMax, inclusively
+     * Populates the given game instance.
      */
-    var randomN = function(nAmount, nMin, nMax) {
-        squishy.assert(nAmount <= nMax - nMin);
+    wumpusGame.DefaultWorldGenerator.prototype.genWorld = function(game) {
+        //this.game = game;
         
-        var arr = squishy.createArray(nMax - nMin);
+        var w = game.grid.width;
+        var nTiles = w * game.grid.height;
+        var nPits = Math.ceil(nTiles * this.nPitRatio);
+        var nBats = Math.ceil(nTiles * this.nBatsRatio);
+        var nGold = this.nGold;
+        var nWumpuses = this.nWumpuses;
         
-        // populate
-        for (var i = 0; i < nMax-nMin; ++i) {
-            arr[i] = i+nMin;
-        }
+        // generate random tile indices for pits, bats, gold and Wumpuses
+        // TODO: To improve performance, use rejection-based algorithm for small and shuffle-based algorithm for large ratios
         
-        // shuffle
-        arr.shuffle();
-        
-        // return first nAmount elements
-        return arr.slice(0, nAmount);
-    };
-    
-    /**
-     * Place tiles at the given positions and flag their neighbors.
-     */
-    var placeObjects = function(indices1D, objectType, neighborFlag) {
-        for (var i = 0; i < indices1D.length; ++i) {
-            var idx1 = indices1D[i];
-            var x = idx1 % w;
-            var y = (idx1 - x) / w;
+        /**
+         * Generates n random numbers between nMin and nMax, inclusively
+         */
+        var randomN = function(nAmount, nMin, nMax) {
+            squishy.assert(nAmount <= nMax - nMin);
             
-            var tile = game.grid.getTile(x, y);
-            tile.setObject(objectType);
+            var arr = squishy.createArray(nMax - nMin);
             
-            if (neighborFlag != wumpusGame.TileFlags.None) {
-                game.grid.foreachNeighborOfTile(tile, function(x, y, neighborTile) {
-                    neighborTile.setTileFlag(neighborFlag);
-                });
+            // populate
+            for (var i = 0; i < nMax-nMin; ++i) {
+                arr[i] = i+nMin;
             }
-        }
+            
+            // shuffle
+            arr.shuffle();
+            
+            // return first nAmount elements
+            return arr.slice(0, nAmount);
+        };
+        
+        /**
+         * Place tiles at the given positions and flag their neighbors.
+         */
+        var placeObjects = function(indices1D, objectType, neighborFlag) {
+            for (var i = 0; i < indices1D.length; ++i) {
+                var idx1 = indices1D[i];
+                var x = idx1 % w;
+                var y = (idx1 - x) / w;
+                
+                var tile = game.grid.getTile(x, y);
+                tile.setObject(objectType);
+                
+                if (neighborFlag != wumpusGame.TileFlags.None) {
+                    game.grid.foreachNeighborOfTile(tile, function(x, y, neighborTile) {
+                        neighborTile.setTileFlag(neighborFlag);
+                    });
+                }
+            }
+        };
+        
+        
+        // TODO: Avoid placing anything on the starting tile
+        // TODO: Make sure, there are possible player paths to all important locations
+        
+        // generate tiles
+        var pitIndices1D = randomN(nPits, 0, nTiles-1);
+        placeObjects(pitIndices1D, wumpusGame.ObjectTypes.Pit, wumpusGame.TileFlags.Breeze);
+        
+        var batIndices1D = randomN(nBats, 0, nTiles-1);
+        placeObjects(batIndices1D, wumpusGame.ObjectTypes.Bats, wumpusGame.TileFlags.FlappingNoise);
+        
+        var goldIndices1D = randomN(nGold, 0, nTiles-1);
+        placeObjects(goldIndices1D, wumpusGame.ObjectTypes.Gold, wumpusGame.TileFlags.None);
+        
+        var wumpusIndices1D = randomN(nWumpuses, 0, nTiles-1);
+        placeObjects(wumpusIndices1D, wumpusGame.ObjectTypes.Wumpus, wumpusGame.TileFlags.Stench);
+        
     };
-    
-    
-    // TODO: Avoid placing anything on the starting tile
-    // TODO: Make sure, there are possible player paths to all important locations
-    
-    // generate tiles
-    var pitIndices1D = randomN(nPits, 0, nTiles-1);
-    placeObjects(pitIndices1D, wumpusGame.ObjectTypes.Pit, wumpusGame.TileFlags.Breeze);
-    
-    var batIndices1D = randomN(nBats, 0, nTiles-1);
-    placeObjects(batIndices1D, wumpusGame.ObjectTypes.Bats, wumpusGame.TileFlags.FlappingNoise);
-    
-    var goldIndices1D = randomN(nGold, 0, nTiles-1);
-    placeObjects(goldIndices1D, wumpusGame.ObjectTypes.Gold, wumpusGame.TileFlags.None);
-    
-    var wumpusIndices1D = randomN(nWumpuses, 0, nTiles-1);
-    placeObjects(wumpusIndices1D, wumpusGame.ObjectTypes.Wumpus, wumpusGame.TileFlags.Stench);
-    
-};
+    return wumpusGame.DefaultWorldGenerator;
+});

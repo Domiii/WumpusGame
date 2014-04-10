@@ -6,8 +6,7 @@
  * This file contains a collection of utilities for DOM manipulation, management and rendering.
  * 
  */
-
-
+ 
 // ##############################################################################################################
 // Line drawing
 
@@ -377,57 +376,56 @@ squishy.addShadow = function(targetEl, thicknessPx, color, blurPx, spreadPx) {
     targetEl.style.cssText += fullShadowString;
 };
 
+if (typeof(window) !== "undefined") {
+    // ##############################################################################################################
+    // JQuery
 
-// ##############################################################################################################
-// JQuery
-
-// add some utilities to jQuery
-//if (jQuery) {
-
-require(["jquery"], function(jQuery) {
-    $( document ).ready(function() {
-        // add centering functionality to jQuery components
-        // see: http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file
-        jQuery.fn.center = function (relativeParent) {
-            if (undefined === relativeParent) relativeParent = $(window);
-            var elem = $(this);
+    // add some utilities to jQuery
+    require(["jquery"], function(jQuery) {
+        $( document ).ready(function() {
+            // add centering functionality to jQuery components
+            // see: http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file
+            jQuery.fn.center = function (relativeParent) {
+                if (undefined === relativeParent) relativeParent = $(window);
+                var elem = $(this);
+                
+                var parentOffset = relativeParent.offset();
+                var leftOffset = Math.max(0, ((relativeParent.outerWidth() - elem.outerWidth()) / 2) + relativeParent.scrollLeft());
+                var topOffset = Math.max(0, ((relativeParent.outerHeight() - elem.outerHeight()) / 2) + relativeParent.scrollTop());
+                if (undefined !== parentOffset)
+                {
+                    leftOffset += parentOffset.left;
+                    topOffset += parentOffset.top;
+                }
+                elem.offset({left : leftOffset, top : topOffset});
+                return this;
+            };
             
-            var parentOffset = relativeParent.offset();
-            var leftOffset = Math.max(0, ((relativeParent.outerWidth() - elem.outerWidth()) / 2) + relativeParent.scrollLeft());
-            var topOffset = Math.max(0, ((relativeParent.outerHeight() - elem.outerHeight()) / 2) + relativeParent.scrollTop());
-            if (undefined !== parentOffset)
-            {
-                leftOffset += parentOffset.left;
-                topOffset += parentOffset.top;
-            }
-            elem.offset({left : leftOffset, top : topOffset});
-            return this;
-        };
-        
-        jQuery.fn.centerWidth = function (relativeParent) {
-            if (undefined === relativeParent) relativeParent = $(window);
-            var elem = $(this);
+            jQuery.fn.centerWidth = function (relativeParent) {
+                if (undefined === relativeParent) relativeParent = $(window);
+                var elem = $(this);
+                
+                
+                var parentOffset = relativeParent.offset();
+                var leftOffset = Math.max(0, ((relativeParent.outerWidth() - elem.outerWidth()) / 2) + relativeParent.scrollLeft());
+                if (undefined !== parentOffset)
+                {
+                    leftOffset += parentOffset.left;
+                }
+                elem.offset({left : leftOffset, top : elem.offset().top});
+                return this;
+            };
             
-            
-            var parentOffset = relativeParent.offset();
-            var leftOffset = Math.max(0, ((relativeParent.outerWidth() - elem.outerWidth()) / 2) + relativeParent.scrollLeft());
-            if (undefined !== parentOffset)
-            {
-                leftOffset += parentOffset.left;
-            }
-            elem.offset({left : leftOffset, top : elem.offset().top});
-            return this;
-        };
-        
-        // Add text width measurement tool to jQuery components
-        // see: http://stackoverflow.com/questions/1582534/calculating-text-width-with-jquery
-        $.fn.textWidth = function(){
-          var html_org = $(this).html();
-          var html_calc = '<span>' + html_org + '</span>';
-          $(this).html(html_calc);
-          var width = $(this).find('span:first').width();
-          $(this).html(html_org);
-          return width;
-        };
+            // Add text width measurement tool to jQuery components
+            // see: http://stackoverflow.com/questions/1582534/calculating-text-width-with-jquery
+            $.fn.textWidth = function(){
+              var html_org = $(this).html();
+              var html_calc = '<span>' + html_org + '</span>';
+              $(this).html(html_calc);
+              var width = $(this).find('span:first').width();
+              $(this).html(html_org);
+              return width;
+            };
+        });
     });
-});
+}

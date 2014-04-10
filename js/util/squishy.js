@@ -17,11 +17,15 @@ squishy.getGlobalContext = function() {
 		return GLOBAL;
 	}
 	else if (typeof(window) !== "undefined") {
-		// JS with GUI (usually browser)
+		// Browser
 		return window;
 	}
+    else if (typeof(self) !== "undefined") {
+        // Web Worker & other APIs
+        return self;
+    }
 	else {
-		throw new Error("Unkown run-time environment. Currently only browsers and Node.js are supported.");
+		throw new Error("Unkown run-time environment. Currently only browsers, Node.js and web workers are supported.");
 	}
 };
 

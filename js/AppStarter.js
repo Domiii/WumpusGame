@@ -8,7 +8,7 @@
 require.config({
 	baseUrl : "",
 	paths : {
-		squishy: "js/util",
+		Util: "js/util",
 		WumpusGame: "js",
 		WumpusUI: "js/ui",
 		
@@ -26,7 +26,7 @@ require.config({
 
 
 // load game and initialize UI
-require(["squishy/squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
+require(["Util/squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
 	/** Game UI files */
 
 	// ####################################################################################################
