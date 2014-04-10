@@ -3,7 +3,7 @@
  */
 "use strict";
  
-define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout"], function() {
+define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout", "./Notifier"], function() {
 	 /**
 	  * Creates a new WumpusUI object for managing the UI of the WumpusGame.
 	  *
@@ -26,7 +26,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
 		squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
 		
-		// set all ui fields
+		// setup UI
 		this.visibility = !!config.visibility;		// force to bool
 		this.game = game;
 		this.gameEl = $(config.gameEl);
@@ -34,22 +34,33 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		this.toolsEl = $(config.toolsEl);
 		this.scriptEditor = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
 		this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
+        
+        this.scriptNotifications = new NotificationList({containerElement : this.scriptEditor.editorContainerEl});
 		
 		// setup listeners
-		this.game.events.tileChanged.addListener((function(ui) {
-			return function(tile) {
-				// update tile rendering
-				ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
-			}
-		})(this));
-		this.game.events.restart.addListener((function(ui) {
-			return function() {
-				// reset all tiles
-				ui.game.grid.foreachTile(function(tile) {
-					ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
-				});
-			}
-		})(this));
+        (function(ui) {
+            ui.game.events.tileChanged.addListener(function(tile) {
+                // update tile rendering
+                ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
+            });
+            ui.game.events.restart.addListener(function() {
+                // reset all tiles
+                ui.game.grid.foreachTile(function(tile) {
+                    ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
+                });
+            });
+            ui.game.events.scriptError.addListener(function(message, stacktrace) {
+                // display notification
+                var frame = stacktrace[0];
+                var info = (frame.functionName ? "from " + frame.functionName + "()" : "") + " - line " + frame.line + ", column " + frame.column + "\n";
+                for (var i = 1; i < stacktrace.length; ++i) {
+                    frame = stacktrace[i];
+                    info += "called " + (frame.functionName ? " from " + frame.functionName + "() at " : "") + frame.line + ":" + frame.column + "\n";
+                }
+                
+                ui.scriptNotifications.error(info, "ERROR: " + message);
+            });
+		})(this);
 	};
 
 	/**
@@ -221,6 +232,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 	 * Runs the script that is currently present in the editor.
 	 */
 	wumpusGame.WumpusUI.prototype.runUserScript = function() {
+        this.scriptNotifications.clearNotifications();          // remove all pending notifications
 		this.scriptEditor.getSession().clearAnnotations();
 		var code = this.scriptEditor.getSession().getValue();
 		this.game.scriptContext.runScript(new wumpusGame.UserScript({codeString: code}));

@@ -60,7 +60,7 @@ define(["Util/squishy", "./UserScript"], function(squishy) {
 					player.performAction(args);
 					break;
 				case "error_eval":
-					// TODO: Show information in UI
+					self.game.events.scriptError.notify(args.message, args.stacktrace);
 					break;
 			}
 		};})(this);

@@ -43,7 +43,8 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 		// create event objects
 		this.events = {
 			tileChanged : new squishy.Event(this),
-			restart : new squishy.Event(this)
+			restart : new squishy.Event(this),
+            scriptError: new squishy.Event(this)
 		};
 		
 		// clear the playing field

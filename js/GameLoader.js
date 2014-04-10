@@ -4,6 +4,14 @@
  
 "use strict";
 
+// TODO: Script time out
+// TODO: Enforce game rules
+// TODO: Restart Button
+// TODO: Stop script Button
+// TODO: Show info panel -- implement proper UI
+
+// TODO: Proper random generator (not more than one neighboring object per indicator tile)
+// TODO: Better code editor error management
 
 // load everything and go
 define(["WumpusGame/core/WumpusGame"], function() {

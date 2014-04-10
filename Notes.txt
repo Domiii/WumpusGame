@@ -11,3 +11,9 @@ Installation
     - Install MySQL
         - http://www.bluecrownsoftware.com/article/271/Installing-MySQL-without-Root-Access-on-Linux
     - 
+    
+    
+Research
+    - Benefits and pitfalls of using HTML5 APIs for online experiments and simulations [2012]
+        - http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=6293120&url=http%3A%2F%2Fieeexplore.ieee.org%2Fxpls%2Fabs_all.jsp%3Farnumber%3D6293120
+    
