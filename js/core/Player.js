@@ -54,6 +54,9 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
             lastTile.notifyTileChanged();
         }
         newTile.notifyTileChanged();
+        
+        // enforce game rules
+        this.game.onPlayerMove();
     };
 
 
