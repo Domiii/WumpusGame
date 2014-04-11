@@ -21,7 +21,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 		this.events = {
 			tileChanged : new squishy.Event(this),
 			restart : new squishy.Event(this),
-            scriptError: new squishy.Event(this)
+            		scriptError: new squishy.Event(this)
 		};
 		
 		if (!this.worldGenerator) {
@@ -70,6 +70,18 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 		
 		return true;
 	};
-    
+	
+	/**
+	 * Enforce game rules.
+	 */
+    	wumpusGame.WumpusGame.prototype.onPlayerMove = function() ｛
+    		var player = this.player;
+    		var tile = player.getTile();
+    		if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
+    			this.setStatus(wumpusGame.GameStatus.Fail);
+    		}
+    		// TODO: Cannot paste in ACE on Android; also, cannot sufficiently zoom vertically
+    	｝
+    	
 	return wumpusGame;
 });
