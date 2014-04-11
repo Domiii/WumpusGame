@@ -78,12 +78,14 @@ define([], function() {
         newObj = newObj || ((obj instanceof Array) ? [] : {});
 
         for (var i in obj) {
-            if (deepCopy && obj[i].getFirstProperty()) {
-                // obj[i] is an object
+			var prop = obj[i];
+            if (deepCopy && (typeof(prop) === "object" || typeof(prop) === "array")) {
+                // deep-copy if the property is an object or an array
                 newObj[i] = squishy.clone(obj[i], true);
             }
             else {
-                newObj[i] = obj[i];
+				// shallow-copy the property
+                newObj[i] = prop;
             }
         }
         return newObj;

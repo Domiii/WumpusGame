@@ -85,9 +85,9 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
      *
      * @sealed
      */
-    wumpusGame.Tile.prototype.clearTile = function(tileFlag) {
-        this.objects = squishy.isDefined(this.objects) ? this.objects : wumpusGame.ObjectTypes.None;
-        this.tileFlags = squishy.isDefined(this.tileFlags) ? this.tileFlags : wumpusGame.TileFlags.None;
+    wumpusGame.Tile.prototype.clearTile = function() {
+        this.objects = wumpusGame.ObjectTypes.None;
+        this.tileFlags = wumpusGame.TileFlags.None;
         this.visited = false;
     };
 

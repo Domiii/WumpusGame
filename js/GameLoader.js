@@ -6,7 +6,6 @@
 
 // TODO: Script time out
 // TODO: Enforce game rules
-// TODO: Restart Button
 // TODO: Stop script Button
 // TODO: Show info panel -- implement proper UI
 
@@ -36,11 +35,9 @@ define(["WumpusGame/core/WumpusGame"], function() {
 
 
 	// ####################################################################################################
-	// create & start the game
-	var game = new wumpusGame.WumpusGame();
-
-	// start game
-	game.restart(coreConfig);
+	// create & initialize the game
+	
+	var game = new wumpusGame.WumpusGame(coreConfig);
 
 	// do something
 	game.player.performAction(wumpusGame.PlayerAction.Forward);

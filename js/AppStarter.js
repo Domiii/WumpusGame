@@ -1,6 +1,5 @@
 /**
  * This file loads and starts the game and its UI (if available).
- * TODO: Properly separate UI and Game.
  */
 "use strict";
 
@@ -11,6 +10,7 @@ require.config({
 		Util: "js/util",
 		WumpusGame: "js",
 		WumpusUI: "js/ui",
+		squishy: "js/util/squishy",
 		
 		ace: "lib/ace",
 		jquery: "lib/jquery/jquery-2.1.0.min",
@@ -26,7 +26,7 @@ require.config({
 
 
 // load game and initialize UI
-require(["Util/squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
+require(["squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
 	/** Game UI files */
 
 	// ####################################################################################################
@@ -71,27 +71,25 @@ require(["Util/squishy"], function() { require(["js/GameLoader"], function(game)
 	// ####################################################################################################
 	// setup buttons
 
-	// get all buttons
-	var btnForward = squishy.getElementByIdOrDie("wumpus-forward");
-	var btnBackward = squishy.getElementByIdOrDie("wumpus-backward");
-	var btnTurnCW = squishy.getElementByIdOrDie("wumpus-turncw");
-	var btnTurnCCW = squishy.getElementByIdOrDie("wumpus-turnccw");
-	var btnRun = squishy.getElementByIdOrDie("wumpus-run");
-
-	// assign actions to buttons
-	squishy.onClick(btnForward, function(evt) {
+	var runScriptBtn = squishy.getElementByIdOrDie("wumpus-run");
+	squishy.onClick("wumpus-restart", function(evt) {
+		ui.game.restart();
+	});
+	squishy.onClick(runScriptBtn, function(evt) {
+		
+		ui.runUserScript();
+	});
+	
+	squishy.onClick("wumpus-forward", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.Forward);
 	});
-	squishy.onClick(btnBackward, function(evt) {
+	squishy.onClick("wumpus-backward", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.Backward);
 	});
-	squishy.onClick(btnTurnCW, function(evt) {
+	squishy.onClick("wumpus-turncw", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
 	});
-	squishy.onClick(btnTurnCCW, function(evt) {
+	squishy.onClick("wumpus-turnccw", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
-	});
-	squishy.onClick(btnRun, function(evt) {
-		ui.runUserScript();
 	});
 });});});
