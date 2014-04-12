@@ -15,16 +15,16 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     /**
 	 * Moves the player to the initial position.
 	 *
-	 * @param {Object} state The initial Player state.
-	 * @param {Array} [state.position] A two-dimensional array, containing x and y coordinates in the grid.
-	 * @param {Number} [state.direction] The direction the player is currently facing, according to wumpusGame.Direction.
-	 * @param {Number} [state.ammo] Amount of arrows the player has to shoot the Wumpus.
-	 * @param {Number=} [state.score] Initial score (defaults = 0).
+	 * @param {Object} state The initial Player 
+	 * @param {Array} [position] A two-dimensional array, containing x and y coordinates in the grid.
+	 * @param {Number} [direction] The direction the player is currently facing, according to wumpusGame.Direction.
+	 * @param {Number} [ammo] Amount of arrows the player has to shoot the Wumpus.
+	 * @param {Number=} [score] Initial score (defaults = 0).
      */
     wumpusGame.Player.prototype.initializePlayer = function(state) {
         // TODO: Sanity checks
 		
-        // shallow copy state into this object
+        // deep-copy state into this object
         squishy.clone(state, true, this);
 		
 		// reset action log
@@ -34,7 +34,18 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.movePlayer(this.position);
     };
 
+    
+    // ##################################################################################################################################
+    // Movement
 
+    /**
+     * Returns the tile that this player is currently standing on.
+     */
+    wumpusGame.Player.prototype.getTile = function() {
+        var pos = this.position;
+        return this.game.grid.getTile(pos[0], pos[1]);
+    };
+    
      /**
       * Moves the player to the given tile.
       */
@@ -55,8 +66,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         }
         newTile.notifyTileChanged();
         
-        // enforce game rules
-        this.game.onPlayerMove();
+        // TODO: Re-think how onPlayerAction implements rule enforcement (to cover this method properly)
     };
 
 
@@ -64,6 +74,8 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
       * Lets the player perform the given wumpusGame.PlayerAction.
       */
     wumpusGame.Player.prototype.performAction = function(action) {
+        if (this.game.status != wumpusGame.GameStatus.Playing) return;
+    
         switch (action) {
             case wumpusGame.PlayerAction.Forward:
                 var neighborTile = this.getTile().getNeighborTile(this.direction);
@@ -87,6 +99,9 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 this.direction = wumpusGame.Direction.getTurnedDirection(this.direction, false);
                 this.getTile().notifyTileChanged();
                 break;
+            case wumpusGame.PlayerAction.Exit:
+                // do nothing
+                break;
             default:
                 squishy.assert(false, "Invalid player action");
                 break;
@@ -94,14 +109,31 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         
         // remember action
         this.actionLog.push(action);
+        
+        // enforce game rules
+        this.game.onPlayerAction(action);
     };
-
-    /**
-     * Returns the tile that this player is currently standing on.
-     */
-    wumpusGame.Player.prototype.getTile = function() {
-        var pos = this.position;
-        return this.game.grid.getTile(pos[0], pos[1]);
+    
+    
+    // ##################################################################################################################################
+    // Manage Player state
+    
+    
+     /**
+      * Lets the player perform the given wumpusGame.PlayerAction.
+      */
+    wumpusGame.Player.prototype.setScore = function(score) {
+        this.score = score;
+        this.game.events.playerStateChanged.notify("score", score);
+    };
+    
+    
+     /**
+      * Lets the player perform the given wumpusGame.PlayerAction.
+      */
+    wumpusGame.Player.prototype.setAmmo = function(ammo) {
+        this.ammo = ammo;
+        this.game.events.playerStateChanged.notify("ammo", ammo);
     };
     
     return wumpusGame.Player;

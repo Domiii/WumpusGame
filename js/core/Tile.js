@@ -4,36 +4,6 @@
  "use strict";
   
 define(["./WumpusGame.Def"], function(wumpusGame) {
-     /**
-      * The state of each tile is comprised of a set of objects and a set of indicators.
-      * These are all object types.
-      * Note that objects are not mutually exclusive.
-      * (E.g. there can be a Wumpus hanging on the side of the walls of a pit which contains gold, with bats hovering above.)
-      */
-    wumpusGame.ObjectTypes = {
-        None : 0x00,
-        Wumpus : 0x01,
-        Pit : 0x02,
-        Gold : 0x04,
-        Bats : 0x08
-    };
-    wumpusGame.ObjectTypes.AllNames = Object.keys(wumpusGame.ObjectTypes);
-        
-     /**
-      * The state of each tile is comprised of an object and a set of indicator flags.
-      * These are all indicator flags.
-      * Note that flags are not mutually exclusive.
-      */
-    wumpusGame.TileFlags = {
-        None : 0x00,
-        Stench : 0x01,
-        Breeze : 0x02,
-        FlappingNoise : 0x04
-    };
-    wumpusGame.TileFlags.AllNames = Object.keys(wumpusGame.TileFlags);
-
-     
-     
     /**
      * Constructs a new tile. A tile can contain one or zero object of any type, and one or zero tile indicator flags.
      *

@@ -92,4 +92,7 @@ require(["squishy"], function() { require(["js/GameLoader"], function(game) { re
 	squishy.onClick("wumpus-turnccw", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
 	});
+	squishy.onClick("wumpus-exit", function(evt) {
+		game.player.performAction(wumpusGame.PlayerAction.Exit);
+	});
 });});});

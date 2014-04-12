@@ -42,6 +42,15 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     };
 
     /**
+    * Returns the tile with the given id (using row-major x/y decomposition).
+    */
+    wumpusGame.Grid.prototype.getTileById = function(tileId) {
+		var x = tileId % this.width;
+		var y = tileId / this.width;
+        return getTile(x, y);
+    };
+
+    /**
     * Iterates over all tiles and calls: callback(tile)
     */
     wumpusGame.Grid.prototype.foreachTile = function(callback) {

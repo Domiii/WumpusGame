@@ -14,8 +14,8 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
         config = config || {};
        
         // set config defaults
-        squishy.setIfUndefined(config, "nPitRatio", 0.20);      // Default: For 10 squares, we want 2 pits
-        squishy.setIfUndefined(config, "nBatsRatio", 0.02);     // Default: For 100 squares, we want 2 bat swarms
+        squishy.setIfUndefined(config, "nPitRatio", 0.05);      // Default: For 100 squares, we want 5 pits
+        squishy.setIfUndefined(config, "nBatsRatio", 0.01);     // Default: For 100 squares, we want 1 bat swarm
         squishy.setIfUndefined(config, "nGold", 1);             // Default: 1
         squishy.setIfUndefined(config, "nWumpuses", 1);         // Default: 1
         
@@ -87,18 +87,19 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
         
         // TODO: Avoid placing anything on the starting tile
         // TODO: Make sure, there are possible player paths to all important locations
+        // TODO: Allow for a player starting tile, other than (0, 0)
         
         // generate tiles
-        var pitIndices1D = randomN(nPits, 0, nTiles-1);
+        var pitIndices1D = randomN(nPits, 1, nTiles-1);
         placeObjects(pitIndices1D, wumpusGame.ObjectTypes.Pit, wumpusGame.TileFlags.Breeze);
         
-        var batIndices1D = randomN(nBats, 0, nTiles-1);
+        var batIndices1D = randomN(nBats, 1, nTiles-1);
         placeObjects(batIndices1D, wumpusGame.ObjectTypes.Bats, wumpusGame.TileFlags.FlappingNoise);
         
-        var goldIndices1D = randomN(nGold, 0, nTiles-1);
+        var goldIndices1D = randomN(nGold, 1, nTiles-1);
         placeObjects(goldIndices1D, wumpusGame.ObjectTypes.Gold, wumpusGame.TileFlags.None);
         
-        var wumpusIndices1D = randomN(nWumpuses, 0, nTiles-1);
+        var wumpusIndices1D = randomN(nWumpuses, 1, nTiles-1);
         placeObjects(wumpusIndices1D, wumpusGame.ObjectTypes.Wumpus, wumpusGame.TileFlags.Stench);
         
     };

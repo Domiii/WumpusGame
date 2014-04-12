@@ -36,6 +36,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
         
         this.scriptNotifications = new NotificationList({containerElement : this.scriptEditor.editorContainerEl});
+        this.gameNotifications = new NotificationList({containerElement : this.gridUI});
 		
 		// setup listeners
         (function(ui) {
@@ -59,6 +60,28 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                 }
                 
                 ui.scriptNotifications.error(info, "ERROR: " + message);
+            });
+            ui.game.events.statusChanged.addListener(function(status) {
+                // status changed
+                switch (status) {
+                    case wumpusGame.GameStatus.Failed:
+                        ui.gameNotifications.error("You have fallen prey to the dangers of the Wumpus dungeon.", "Game Over");   
+                        break;
+                    case wumpusGame.GameStatus.Win:
+                        ui.gameNotifications.success("You made it out alive with " + ui.game.player.score + " points.", "Congratulations!");
+                        break;
+                    case wumpusGame.GameStatus.Playing:
+                        // clear previous notification(s)
+                        ui.gameNotifications.clearNotifications();
+                        break;
+                    default:
+                        throw new Error("Unknown GameStatus: " + status);
+                        break;
+                }
+            });
+            ui.game.events.playerStateChanged.addListener(function(stateName, value) {
+                // score or ammo changed
+                
             });
 		})(this);
 	};
@@ -94,6 +117,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		var northCont = this.northCotainer || $(document.createElement("div"));
 		
 		// add key handlers
+        // TODO: Use a consistent key enum
 		if (!northContExisted) {
 			var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
 			$(document).keydown((function(game) { return function(e){
@@ -109,8 +133,11 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 				if (e.which == arrowKey.left) { 
 				   game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
 				}
-				if (e.which == 'r') {
-					
+				if (e.which == 'E'.charCodeAt(0) || e.which == 'e'.charCodeAt(0)) {
+				   game.player.performAction(wumpusGame.PlayerAction.Exit);
+				}
+				if (e.which == 'R'.charCodeAt(0) || e.which == 'r'.charCodeAt(0)) {
+					game.restart();
 				}
 			};
 			})(this.game));

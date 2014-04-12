@@ -151,6 +151,13 @@ Object.defineProperty(global, "runScript", {
 				self[key] = scriptGlobals[key];
 			}
 		}
+        
+		// expose everything from the wumpusGame namespace
+		for (var key in wumpusGame) {
+			if (wumpusGame.hasOwnProperty(key)) {
+				self[key] = wumpusGame[key];
+			}
+		}
 		
 		try {
 			// Disallow self for compatability. (Other script contexts might not have "self".)
@@ -233,10 +240,34 @@ Object.defineProperty(global, "scriptGlobals",  {
     enumrable: false,
 	value: {
 		/**
-		 * Calling this function lets the agent move forward.
+		 * Move forward one tile
 		 */
 		moveForward: function() {
 			postMessage({command: "action", args: wumpusGame.PlayerAction.Forward});
+		},
+		/**
+		 * Move backward one tile
+		 */
+		moveBackward: function() {
+			postMessage({command: "action", args: wumpusGame.PlayerAction.Backward});
+		},
+		/**
+		 * Turn clockwise by 90 degrees
+		 */
+		turnClockwise: function() {
+			postMessage({command: "action", args: wumpusGame.PlayerAction.TurnClockwise});
+		},
+		/**
+		 * Turn counter clockwise by 90 degrees
+		 */
+		turnCounterClockwise: function() {
+			postMessage({command: "action", args: wumpusGame.PlayerAction.TurnCounterClockwise});
+		},
+		/**
+		 * Escape through an entrance.
+		 */
+		exit: function() {
+			postMessage({command: "action", args: wumpusGame.PlayerAction.Exit});
 		}
 	}
 });

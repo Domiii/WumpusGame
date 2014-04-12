@@ -8,20 +8,27 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 	  * Constructs a new game.
 	  * @constructor 
 	  */
-	wumpusGame.WumpusGame = function(coreConfig) {
+	wumpusGame.WumpusGame = function(config) {
 		// store settings
-		this.initialPlayerState = coreConfig.playerState;
+		this.initialPlayerState = config.playerState;
+        
+        // copy settings into game object
+        squishy.clone(config.gameSettings, false, this);
+        
 		
 		// create core objects
-		this.grid = new wumpusGame.Grid(this, coreConfig.gridConfig);
+		this.grid = new wumpusGame.Grid(this, config.gridConfig);
 		this.player = new wumpusGame.Player(this);
 		this.scriptContext = new WorkerScriptContext(this);
 		
 		// create event objects
 		this.events = {
-			tileChanged : new squishy.Event(this),
-			restart : new squishy.Event(this),
-            		scriptError: new squishy.Event(this)
+			tileChanged: new squishy.Event(this),
+			restart: new squishy.Event(this),
+            scriptError: new squishy.Event(this),
+            statusChanged: new squishy.Event(this),
+            playerStateChanged: new squishy.Event(this),
+            playerEvent: new squishy.Event(this),
 		};
 		
 		if (!this.worldGenerator) {
@@ -50,10 +57,6 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 
 	 /**
 	  * Clears (if necessary), initializes and starts the game.
-	  *
-	  * @param {Object} coreConfig Configuration of the game core.
-	  * @param {Object} [coreConfig.gridConfig] Grid configuration.
-	  * @param {Object} [coreConfig.playerState] Initial player state.
 	  */
 	wumpusGame.WumpusGame.prototype.restart = function() {
 		// gen world
@@ -61,27 +64,67 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 		
 		// initialize player
 		this.player.initializePlayer(this.initialPlayerState);
+        this.player.getTile().setObject(wumpusGame.ObjectTypes.Entrance);
 		
 		// restart script worker
 		this.scriptContext.restartWorker();
+        
+        // 
+        this.setStatus(wumpusGame.GameStatus.Playing);
 		
 		// notify all listeners
 		this.events.restart.notify();
-		
 		return true;
 	};
+    
+	/**
+	 * Sets the current game status.
+     * @param {Number} status The status is a numeric value of the wumpusGame.GameStatus enum.
+	 */
+    wumpusGame.WumpusGame.prototype.setStatus = function(status) {
+        this.status = status;
+        this.events.statusChanged.notify(status);
+    };
 	
 	/**
-	 * Enforce game rules.
+	 * Enforce game rules
 	 */
-    	wumpusGame.WumpusGame.prototype.onPlayerMove = function() ｛
-    		var player = this.player;
-    		var tile = player.getTile();
-    		if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
-    			this.setStatus(wumpusGame.GameStatus.Fail);
-    		}
-    		// TODO: Cannot paste in ACE on Android; also, cannot sufficiently zoom vertically
-    	｝
+    wumpusGame.WumpusGame.prototype.onPlayerAction = function(action) {
+        var player = this.player;
+        var tile = player.getTile();
+        
+        if (wumpusGame.PlayerAction.isMove(action)) {
+            // apply move penalty
+            player.setScore(player.score + this.pointsMove);
+            if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
+                // player fell into a pit
+                this.setStatus(wumpusGame.GameStatus.Failed);
+            }
+            else if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
+                // player walked onto the Wumpus (also a deadly experience)
+                this.setStatus(wumpusGame.GameStatus.Failed);
+            }
+            if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
+                // player found and picked up gold
+                tile.removeObject(wumpusGame.ObjectTypes.Gold);
+                tile.notifyTileChanged();
+                player.setScore(player.score + this.pointsGold);
+            }
+            if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
+                // bats teleport player to a random location
+                var tileX = squishy.randomInt(0, this.grid.width-1);
+                var tileY = squishy.randomInt(0, this.grid.height-1);
+                
+                this.player.movePlayer([tileX, tileY]);
+            }
+        }
+        else if (action == wumpusGame.PlayerAction.Exit) {
+            // apply move penalty
+            if (tile.hasObject(wumpusGame.ObjectTypes.Entrance)) {
+                this.setStatus(wumpusGame.GameStatus.Win);
+            }
+        }
+    };
     	
 	return wumpusGame;
 });

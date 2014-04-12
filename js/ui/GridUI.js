@@ -176,6 +176,10 @@ wumpusGame.createTileElement = function(gridUI, tile) {
 			if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
 				text += "B ";
 			}
+			if (tile.hasObject(wumpusGame.ObjectTypes.Entrance)) {
+				text += "E ";
+			}
+            
 			if (tile.hasTileFlag(wumpusGame.TileFlags.Stench)) {
 				text += "s ";
 			}
