@@ -36,7 +36,7 @@ define(["WumpusGame/core/WumpusGame"], function() {
             /**
              * Delay between player actions in milliseconds
              */
-            playerActionDelay: 100
+            playerActionDelay: 200
         },
     
         // configure the grid
@@ -55,7 +55,7 @@ define(["WumpusGame/core/WumpusGame"], function() {
         
         // configure the ScriptContext
         scriptConfig: {
-            defaultScriptTimeout: 100
+            defaultScriptTimeout: 300
         }
     };
 

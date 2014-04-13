@@ -76,6 +76,17 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Move, {pos: squishy.clone(this.position, true), firstVisit: firstVisit});
     };
     
+
+     /**
+      * Moves the player, after the default delay.
+      */
+    wumpusGame.Player.prototype.movePlayerDelayed = function(newPos) {
+        (function(player) {
+            // queue move
+            player.addDelayedEvent(function() { player.movePlayer(newPos); }, 0);
+        })(this);
+    };
+    
     /**
      * Sets the direction the player is currently facing.
      */
@@ -104,6 +115,24 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.eventTimer = setTimeout(nextAction, this.game.playerActionDelay);
     };
 
+    /**
+     * Add callback to event queue and keep running.
+     */
+    wumpusGame.Player.prototype.addDelayedEvent = function(callback, index) {
+        (function(player) {
+            if (squishy.isDefined(index)) {
+                player.eventQueue.splice(index, 0, function() { callback(); player.startNextEvent(); });
+            }
+            else {
+                player.eventQueue.push(function() { callback(); player.startNextEvent(); });
+            }
+            if (!player.eventTimer) {
+                player.startNextEvent();
+            }
+        })(this);
+        
+    };
+
      /**
       * Lets the player perform the given wumpusGame.PlayerAction after the default delay.
       */
@@ -114,11 +143,8 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
             var remainingDelay = player.game.playerActionDelay - timeSinceLastAction;
             
             if (player.eventTimer || remainingDelay > 0) {
-                // queue up
-                player.eventQueue.push(function() { player.performActionNow(action); });
-                if (!player.eventTimer) {
-                    player.startNextEvent();
-                }
+                // queue action
+                player.addDelayedEvent(function() { player.performActionNow(action); });
             }
             else {
                 // first move is done instantly
@@ -192,9 +218,6 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         
         // remember action
         this.actionLog.push(action);
-        
-        // start next action
-        this.startNextEvent();
     };
     
     

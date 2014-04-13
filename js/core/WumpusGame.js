@@ -129,7 +129,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
                 var tileX = squishy.randomInt(0, this.grid.width-1);
                 var tileY = squishy.randomInt(0, this.grid.height-1);
                 var newPos = [tileX, tileY];
-                this.player.movePlayer(newPos);
+                this.player.movePlayerDelayed(newPos);
                 break;
             case wumpusGame.PlayerEvent.ShootArrow:
                 // TODO: Arrow shooting dynamics

@@ -139,7 +139,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                     info = (frame.functionName ? "from " + frame.functionName + "()" : "") + " - line " + frame.line + ", column " + frame.column + "\n";
                     for (var i = 1; i < stacktrace.length; ++i) {
                         frame = stacktrace[i];
-                        info += "called " + (frame.functionName ? " from " + frame.functionName + "() at " : "") + frame.line + ":" + frame.column + "\n";
+                        info += "called from " + (frame.functionName ? frame.functionName + "() at " : "") + "line " + frame.line + ", column " + frame.column + "\n";
                     }
                 }
                 else {
@@ -354,12 +354,15 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
      * Runs the script that is currently present in the editor.
      */
     wumpusGame.WumpusUI.prototype.runUserScript = function() {
-        if (this.game.status != wumpusGame.GameStatus.Playing) return;
+        if (this.game.status !== wumpusGame.GameStatus.Playing) {
+            // reset game
+            this.game.restart();
+        }
         
         this.scriptNotifications.clearNotifications();          // remove all pending notifications
         this.scriptEditor.getSession().clearAnnotations();
-        var code = this.scriptEditor.getSession().getValue();
-        this.game.scriptContext.runScript(new wumpusGame.UserScript({codeString: code}));
+        var code = this.scriptEditor.getSession().getValue().toString();
+        this.game.scriptContext.runUserCode(code);
     };
     
     return wumpusGame;

@@ -8,7 +8,6 @@
  */
 "use strict";
 
-
 // ################################################################################################################
 // Make Worker context secure by removing all kinds of potentially dangerous globals
 
@@ -356,6 +355,7 @@ Object.defineProperty(global, "scriptGlobals",  {
                     if (lockDown) {
                         local.unsecureGlobal = lockDown(arguments);
                         local = null;        // apparently, copying some globals into another object and calling them from there is against the rules
+                        postMessage({command: "ready"});
                     }
                 });
                 break;
