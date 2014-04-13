@@ -15,7 +15,7 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
        
         // set config defaults
         squishy.setIfUndefined(config, "nPitRatio", 0.05);      // Default: For 100 squares, we want 5 pits
-        squishy.setIfUndefined(config, "nBatsRatio", 0.01);     // Default: For 100 squares, we want 1 bat swarm
+        squishy.setIfUndefined(config, "nBatsRatio", 0.1);     // Default: For 100 squares, we want 1 bat swarm
         squishy.setIfUndefined(config, "nGold", 1);             // Default: 1
         squishy.setIfUndefined(config, "nWumpuses", 1);         // Default: 1
         

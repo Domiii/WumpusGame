@@ -31,13 +31,18 @@ define(["WumpusGame/core/WumpusGame"], function() {
             /**
              * Penalty for a move (usually -1 or 0).
              */
-            pointsMove: -1
+            pointsMove: -1,
+            
+            /**
+             * Delay between player actions in milliseconds
+             */
+            playerActionDelay: 500
         },
     
 		// configure the grid
 		gridConfig: {
-			width: 5,
-			height: 5
+			width: 6,
+			height: 6
 		},
 		
 		// configure the initial player state

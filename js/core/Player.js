@@ -27,6 +27,13 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         // deep-copy state into this object
         squishy.clone(state, true, this);
 		
+        // reset action queue & timer
+        this.actionQueue = [];
+        if (this.actionTimer) {
+            clearTimeout(this.actionTimer);
+            this.actionTimer = null;
+        }
+        
 		// reset action log
         this.actionLog = [];
 		
@@ -82,11 +89,41 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Turn, this.direction);
     };
 
+    /**
+     * Perform the next action in the queue.
+     */
+    wumpusGame.Player.prototype.startNextAction = function() {
+        if (this.actionQueue.length == 0) {
+            this.actionTimer = null;
+            return;
+        }
+        
+        // dequeue action
+        var nextAction = this.actionQueue[0];
+        this.actionQueue.splice(0, 1);
+        
+        // start timer
+        this.actionTimer = setTimeout((function(player, action) { return function() { player.performAction(action, true); }; })(this, nextAction), this.game.playerActionDelay);
+    };
+
+     /**
+      * Lets the player perform the given wumpusGame.PlayerAction after the default delay.
+      */
+    wumpusGame.Player.prototype.performActionDelayed = function(action) {
+        this.actionQueue.push(action);
+        if (!this.actionTimer) {
+            this.startNextAction();
+        }
+    };
 
      /**
       * Lets the player perform the given wumpusGame.PlayerAction.
       */
-    wumpusGame.Player.prototype.performAction = function(action) {
+    wumpusGame.Player.prototype.performAction = function(action, instant) {
+        if (!instant && this.actionTimer) {
+            this.actionQueue.push(action);
+            return;
+        }
         if (this.game.status != wumpusGame.GameStatus.Playing) return;
     
         switch (action) {
@@ -121,6 +158,9 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         
         // remember action
         this.actionLog.push(action);
+        
+        // start next action
+        this.startNextAction();
     };
     
     

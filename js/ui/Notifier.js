@@ -1,6 +1,9 @@
 /**
  * This file contains a list of pretty notification items.
  * Based on Notifier.js, from: http://www.srirangan.net/assets/demos/notifier.js/notifier.js
+ * TODO: Animate fade-in (and fade-out) of notifications
+ * TODO: Add new message to the bottom
+ * TODO: Compress list when items are removed
  */
 "use strict";
 

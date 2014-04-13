@@ -15,7 +15,6 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
         // copy settings into game object
         squishy.clone(config.gameSettings, false, this);
         
-		
 		// create core objects
 		this.grid = new wumpusGame.Grid(this, config.gridConfig);
 		this.player = new wumpusGame.Player(this);
@@ -129,7 +128,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
                 var tileX = squishy.randomInt(0, this.grid.width-1);
                 var tileY = squishy.randomInt(0, this.grid.height-1);
                 var newPos = [tileX, tileY];
-                this.player.movePlayer(args);
+                this.player.movePlayer(newPos);
                 break;
             case wumpusGame.PlayerEvent.ShootArrow:
                 // TODO: Arrow shooting dynamics

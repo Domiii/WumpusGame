@@ -79,7 +79,9 @@ define(["squishy", "./UserScript"], function(squishy) {
 			switch (cmd) {
 				case "action":
 					// action to be performed by agent
-					player.performAction(args);
+        
+        console.log('action: ' + args);
+					player.performActionDelayed(args);
 					break;
 				case "error_eval":
 					self.game.events.scriptError.notify(args.message, args.stacktrace);
