@@ -53,12 +53,5 @@ define(["WumpusGame/core/WumpusGame"], function() {
 	// ####################################################################################################
 	// create & initialize the game
 	
-	var game = new wumpusGame.WumpusGame(gameConfig);
-
-	// do something
-	game.player.performAction(wumpusGame.PlayerAction.Forward);
-	game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
-	game.player.performAction(wumpusGame.PlayerAction.Forward);
-	
-	return game;
+	return new wumpusGame.WumpusGame(gameConfig);
 });

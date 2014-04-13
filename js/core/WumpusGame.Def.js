@@ -117,13 +117,16 @@ define(["squishy"], function() {
       */
     wumpusGame.PlayerEvent = {
         Nothing: 0,
-        GrabGold: 1,
-        Teleport: 2,        // bats dropped player off somewhere
-        DeadPit: 3,         // dead in pit
-        DeadWumpus: 4,      // dead through Wumpus
-        KillWumpus: 5,      // Player killed Wumpus
-        ShotArrow: 6,       // Player shot arrow and missed
-        Exited: 7           // Player exited
+        Move: 1,            // player moved to new tile
+        Turn: 2,            // player changed direction
+        GrabGold: 3,        // player grabbed gold
+        Teleport: 4,        // bats dropped player off somewhere
+        ShootArrow: 5,      // Player shoots arrow
+        ArrowHitWumpus: 6,  // Player killed Wumpus
+        ArrowMissed: 7,     // Arrow missed
+        DeadPit: 8,         // dead in pit
+        DeadWumpus: 9,      // dead through Wumpus
+        Exit: 10           // Player exited
     };
 
      

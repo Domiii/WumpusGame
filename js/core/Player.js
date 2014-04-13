@@ -52,6 +52,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     wumpusGame.Player.prototype.movePlayer = function(newPos) {
         var lastTile = this.getTile();
         var newTile = this.game.grid.getTile(newPos[0], newPos[1]);
+        var firstVisit = !newTile.visited;
         
         // update position
         this.position[0] = newPos[0];
@@ -66,7 +67,19 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         }
         newTile.notifyTileChanged();
         
-        // TODO: Re-think how onPlayerAction implements rule enforcement (to cover this method properly)
+        // apply game rules
+        this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Move, {pos: squishy.clone(this.position, true), firstVisit: firstVisit});
+    };
+    
+    /**
+     * Sets the direction the player is currently facing.
+     */
+    wumpusGame.Player.prototype.setDirection = function(direction) {
+        this.direction = direction;
+        this.getTile().notifyTileChanged();
+        
+        // apply game rules
+        this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Turn, this.direction);
     };
 
 
@@ -91,16 +104,15 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 break;
             case wumpusGame.PlayerAction.TurnClockwise:
                 // update direction
-                this.direction = wumpusGame.Direction.getTurnedDirection(this.direction, true);
-                this.getTile().notifyTileChanged();
+                this.setDirection(wumpusGame.Direction.getTurnedDirection(this.direction, true));
                 break;
             case wumpusGame.PlayerAction.TurnCounterClockwise:
                 // update direction
-                this.direction = wumpusGame.Direction.getTurnedDirection(this.direction, false);
-                this.getTile().notifyTileChanged();
+                this.setDirection(wumpusGame.Direction.getTurnedDirection(this.direction, false));
                 break;
             case wumpusGame.PlayerAction.Exit:
-                // do nothing
+                if (!this.getTile().hasObject(wumpusGame.ObjectTypes.Entrance)) return;   // nothing happened
+                this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
                 break;
             default:
                 squishy.assert(false, "Invalid player action");
@@ -109,9 +121,6 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         
         // remember action
         this.actionLog.push(action);
-        
-        // enforce game rules
-        this.game.onPlayerAction(action);
     };
     
     

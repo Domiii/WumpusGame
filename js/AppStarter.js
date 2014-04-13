@@ -66,8 +66,6 @@ require(["squishy"], function() { require(["js/GameLoader"], function(game) { re
 	// re-compute layout and style
 	ui.resetLayout();
 	
-	
-	
 	// ####################################################################################################
 	// setup buttons
 
@@ -76,7 +74,6 @@ require(["squishy"], function() { require(["js/GameLoader"], function(game) { re
 		ui.game.restart();
 	});
 	squishy.onClick(runScriptBtn, function(evt) {
-		
 		ui.runUserScript();
 	});
 	
@@ -95,4 +92,12 @@ require(["squishy"], function() { require(["js/GameLoader"], function(game) { re
 	squishy.onClick("wumpus-exit", function(evt) {
 		game.player.performAction(wumpusGame.PlayerAction.Exit);
 	});
+    
+
+	// ####################################################################################################
+	// do something
+    
+	game.player.performAction(wumpusGame.PlayerAction.Forward);
+	game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+	game.player.performAction(wumpusGame.PlayerAction.Forward);
 });});});

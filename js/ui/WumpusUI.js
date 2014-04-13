@@ -59,16 +59,16 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                     info += "called " + (frame.functionName ? " from " + frame.functionName + "() at " : "") + frame.line + ":" + frame.column + "\n";
                 }
                 
-                ui.scriptNotifications.error(info, "ERROR: " + message);
+                ui.scriptNotifications.error(info, "ERROR: " + message, true);
             });
             ui.game.events.statusChanged.addListener(function(status) {
                 // status changed
                 switch (status) {
                     case wumpusGame.GameStatus.Failed:
-                        ui.gameNotifications.error("You have fallen prey to the dangers of the Wumpus dungeon.", "Game Over");   
+                        ui.gameNotifications.error("You have fallen prey to the dangers of the Wumpus dungeon.", "Game Over", false);   
                         break;
                     case wumpusGame.GameStatus.Win:
-                        ui.gameNotifications.success("You made it out alive with " + ui.game.player.score + " points.", "Congratulations!");
+                        ui.gameNotifications.success("You made it out alive with score: " + ui.game.player.score + "", "Congratulations!", false);
                         break;
                     case wumpusGame.GameStatus.Playing:
                         // clear previous notification(s)
@@ -79,11 +79,44 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                         break;
                 }
             });
+            ui.game.events.playerEvent.addListener(function(player, event) {
+                // player event has happened
+                switch (event) {
+                    case wumpusGame.PlayerEvent.Move:
+                        break;
+                    case wumpusGame.PlayerEvent.Turn:
+                        break;
+                    case wumpusGame.PlayerEvent.GrabGold:
+                        // player found and picked up gold
+                        ui.gameNotifications.info("You grabbed some gold. Your score is now: " + ui.game.player.score, "Good Job!", true);   
+                        break;
+                    case wumpusGame.PlayerEvent.Teleport:
+                        // bats teleport player to a random location
+                        ui.gameNotifications.info("The bats carried you to a random tile.", "Surprise!", true);   
+                        break;
+                    case wumpusGame.PlayerEvent.ShootArrow:
+                        break;
+                    case wumpusGame.PlayerEvent.ArrowHitWumpus:
+                        // player killed Wumpus
+                        ui.gameNotifications.info("You hear a scream, indicating the death of the Wumpus.", "ROOOOOOOOOOOOOAAAARR!", true);  
+                        break;
+                    case wumpusGame.PlayerEvent.ArrowMissedWumpus:
+                        break;
+                    case wumpusGame.PlayerEvent.DeadPit:
+                        // player fell into a pit
+                        break;
+                    case wumpusGame.PlayerEvent.DeadWumpus:
+                        // player walked onto the Wumpus (also a deadly experience)
+                        break;
+                    case wumpusGame.PlayerEvent.Exit:
+                        break;
+                }
+            });
             ui.game.events.playerStateChanged.addListener(function(stateName, value) {
                 // score or ammo changed
                 
             });
-		})(this);
+        })(this);
 	};
 
 	/**
@@ -121,7 +154,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
 		if (!northContExisted) {
 			var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
 			$(document).keydown((function(game) { return function(e){
-				if (e.which == arrowKey.up) { 
+				if (e.which == arrowKey.up) {
 				   game.player.performAction(wumpusGame.PlayerAction.Forward);
 				}
 				if (e.which == arrowKey.down) { 

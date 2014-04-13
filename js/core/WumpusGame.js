@@ -61,6 +61,11 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 	wumpusGame.WumpusGame.prototype.restart = function() {
 		// gen world
 		this.worldGenerator.genWorld(this);
+        
+        // reset game state
+        this.wumpusAlive = true;
+        this.eventLog = [];
+        this.setStatus(wumpusGame.GameStatus.Playing);
 		
 		// initialize player
 		this.player.initializePlayer(this.initialPlayerState);
@@ -68,9 +73,6 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 		
 		// restart script worker
 		this.scriptContext.restartWorker();
-        
-        // 
-        this.setStatus(wumpusGame.GameStatus.Playing);
 		
 		// notify all listeners
 		this.events.restart.notify();
@@ -89,42 +91,78 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
 	/**
 	 * Enforce game rules
 	 */
-    wumpusGame.WumpusGame.prototype.onPlayerAction = function(action) {
-        var player = this.player;
+    wumpusGame.WumpusGame.prototype.onPlayerEvent = function(player, event, args, playback) {
         var tile = player.getTile();
         
-        if (wumpusGame.PlayerAction.isMove(action)) {
-            // apply move penalty
-            player.setScore(player.score + this.pointsMove);
-            if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
-                // player fell into a pit
-                this.setStatus(wumpusGame.GameStatus.Failed);
-            }
-            else if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
-                // player walked onto the Wumpus (also a deadly experience)
-                this.setStatus(wumpusGame.GameStatus.Failed);
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
+        switch (event) {
+            case wumpusGame.PlayerEvent.Move:
+                var firstVisit = args.firstVisit;
+                
+                // apply move penalty
+                player.setScore(player.score + this.pointsMove);
+                
+                // check for object encounters
+                if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
+                    this.onPlayerEvent(player, wumpusGame.PlayerEvent.Teleport);
+                }
+                else if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
+                    this.onPlayerEvent(player, wumpusGame.PlayerEvent.DeadPit);
+                }
+                else if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus) && this.wumpusAlive) {
+                    // walked into the arms of a living Wumpus
+                    this.onPlayerEvent(player, wumpusGame.PlayerEvent.DeadWumpus);
+                }
+                else if (tile.hasObject(wumpusGame.ObjectTypes.Gold) && firstVisit) {
+                    // stumpled upon and picked up gold
+                    this.onPlayerEvent(player, wumpusGame.PlayerEvent.GrabGold);
+                }
+                break;
+            case wumpusGame.PlayerEvent.Turn:
+                break;
+            case wumpusGame.PlayerEvent.GrabGold:
                 // player found and picked up gold
-                tile.removeObject(wumpusGame.ObjectTypes.Gold);
                 tile.notifyTileChanged();
                 player.setScore(player.score + this.pointsGold);
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
+                break;
+            case wumpusGame.PlayerEvent.Teleport:
                 // bats teleport player to a random location
                 var tileX = squishy.randomInt(0, this.grid.width-1);
                 var tileY = squishy.randomInt(0, this.grid.height-1);
-                
-                this.player.movePlayer([tileX, tileY]);
-            }
-        }
-        else if (action == wumpusGame.PlayerAction.Exit) {
-            // apply move penalty
-            if (tile.hasObject(wumpusGame.ObjectTypes.Entrance)) {
+                var newPos = [tileX, tileY];
+                this.player.movePlayer(args);
+                break;
+            case wumpusGame.PlayerEvent.ShootArrow:
+                // TODO: Arrow shooting dynamics
+                break;
+            case wumpusGame.PlayerEvent.ArrowHitWumpus:
+                this.wumpusAlive = false;
+                break;
+            case wumpusGame.PlayerEvent.ArrowMissedWumpus:
+                break;
+            case wumpusGame.PlayerEvent.DeadPit:
+                // player fell into a pit
+                this.setStatus(wumpusGame.GameStatus.Failed);
+                break;
+            case wumpusGame.PlayerEvent.DeadWumpus:
+                // player walked onto the Wumpus (also a deadly experience)
+                this.setStatus(wumpusGame.GameStatus.Failed);
+                break;
+            case wumpusGame.PlayerEvent.Exit:
+                // player left the dungeon unharmed
                 this.setStatus(wumpusGame.GameStatus.Win);
-            }
+                break;
+             default:
+                throw new Error("Invalid player event: " + event);
         }
-    };
+        
+        if (!playback) {
+            // add log entry
+            this.eventLog.push({event: event, args: args});
+        }
+        
+        // call listener callbacks
+        this.events.playerEvent.notify(player, event, args);
+    }
     	
 	return wumpusGame;
 });
