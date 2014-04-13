@@ -14,10 +14,10 @@
 
 // load everything and go
 define(["WumpusGame/core/WumpusGame"], function() {
-	// ####################################################################################################
-	// configure the game
-	
-	var gameConfig = {
+    // ####################################################################################################
+    // configure the game
+    
+    var gameConfig = {
         // points for different actions
         gameSettings: {
             /**
@@ -36,27 +36,32 @@ define(["WumpusGame/core/WumpusGame"], function() {
             /**
              * Delay between player actions in milliseconds
              */
-            playerActionDelay: 500
+            playerActionDelay: 100
         },
     
-		// configure the grid
-		gridConfig: {
-			width: 6,
-			height: 6
-		},
-		
-		// configure the initial player state
-		playerState: {
-			position: [0, 0],
-			direction: wumpusGame.Direction.Down,
-			ammo: 1,
-			score: 0
-		}
-	};
+        // configure the grid
+        gridConfig: {
+            width: 6,
+            height: 6
+        },
+        
+        // configure the initial player state
+        playerState: {
+            position: [0, 0],
+            direction: wumpusGame.Direction.Down,
+            ammo: 1,
+            score: 0
+        },
+        
+        // configure the ScriptContext
+        scriptConfig: {
+            defaultScriptTimeout: 100
+        }
+    };
 
 
-	// ####################################################################################################
-	// create & initialize the game
-	
-	return new wumpusGame.WumpusGame(gameConfig);
+    // ####################################################################################################
+    // create & initialize the game
+    
+    return new wumpusGame.WumpusGame(gameConfig);
 });

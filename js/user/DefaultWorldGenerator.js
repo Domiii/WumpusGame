@@ -29,11 +29,11 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
      */
     wumpusGame.DefaultWorldGenerator.prototype.genWorld = function(game) {
         //this.game = game;
-		
-		// clear all tiles
-		game.clearGame();
         
-		// setup
+        // clear all tiles
+        game.clearGame();
+        
+        // setup
         var w = game.grid.width;
         var nTiles = w * game.grid.height;
         var nPits = Math.ceil(nTiles * this.nPitRatio);

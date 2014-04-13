@@ -4,8 +4,8 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
      /**
       * Constructs a new Player.
       * 
-	  * @constructor
-	  * @param game
+      * @constructor
+      * @param game
       */
     wumpusGame.Player = function(game) {
         this.game = game;
@@ -13,37 +13,35 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
 
 
     /**
-	 * Moves the player to the initial position.
-	 *
-	 * @param {Object} state The initial Player 
-	 * @param {Array} [position] A two-dimensional array, containing x and y coordinates in the grid.
-	 * @param {Number} [direction] The direction the player is currently facing, according to wumpusGame.Direction.
-	 * @param {Number} [ammo] Amount of arrows the player has to shoot the Wumpus.
-	 * @param {Number=} [score] Initial score (defaults = 0).
+     * Moves the player to the initial position.
+     *
+     * @param {Object} state The initial Player 
+     * @param {Array} [position] A two-dimensional array, containing x and y coordinates in the grid.
+     * @param {Number} [direction] The direction the player is currently facing, according to wumpusGame.Direction.
+     * @param {Number} [ammo] Amount of arrows the player has to shoot the Wumpus.
+     * @param {Number=} [score] Initial score (defaults = 0).
      */
     wumpusGame.Player.prototype.initializePlayer = function(state) {
         // TODO: Sanity checks
-		
+        
         // deep-copy state into this object
         squishy.clone(state, true, this);
-		
-        // reset action queue & timer
-        this.eventQueue = [];
-        if (this.actionTimer) {
-            clearTimeout(this.actionTimer);
-            this.actionTimer = null;
-        }
         
-		// reset action log
+        // reset action queue & timer
+        this.stopPlayer();
+        
+        this.lastActionTime = squishy.getCurrentTimeMillis();
+        
+        // reset action log
         this.actionLog = [];
-		
-		// move to initial position
+        
+        // move to initial position
         this.movePlayer(this.position);
     };
 
     
     // ##################################################################################################################################
-    // Movement
+    // Movement, events & actions
 
     /**
      * Returns the tile that this player is currently standing on.
@@ -103,7 +101,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.eventQueue.splice(0, 1);
         
         // start timer
-        this.eventTimer = setTimeout(return nextAction; }, this.game.playerActionDelay);
+        this.eventTimer = setTimeout(nextAction, this.game.playerActionDelay);
     };
 
      /**
@@ -111,11 +109,33 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
       */
     wumpusGame.Player.prototype.performActionDelayed = function(action) {
         (function(player) {
-            this.eventQueue.push(function() { player.performActionNow(action, true); });
-            if (!this.eventTimer) {
-                this.startNextEvent();
+            var now = squishy.getCurrentTimeMillis();
+            var timeSinceLastAction = now - player.lastActionTime;
+            var remainingDelay = player.game.playerActionDelay - timeSinceLastAction;
+            
+            if (player.eventTimer || remainingDelay > 0) {
+                // queue up
+                player.eventQueue.push(function() { player.performActionNow(action); });
+                if (!player.eventTimer) {
+                    player.startNextEvent();
+                }
             }
-        )(this);
+            else {
+                // first move is done instantly
+                player.performActionNow(action);
+            }
+        })(this);
+    };
+    
+    /**
+     * Stops the player dead in her tracks.
+     */
+    wumpusGame.Player.prototype.stopPlayer = function() {
+        this.eventQueue = [];
+        if (this.eventTimer) {
+            clearTimeout(this.eventTimer);
+            this.eventTimer = null;
+        }
     };
 
      /**
@@ -123,19 +143,31 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
       */
     wumpusGame.Player.prototype.performActionNow = function(action) {
         if (this.game.status != wumpusGame.GameStatus.Playing) return;
+        
+        this.lastActionTime = squishy.getCurrentTimeMillis();
+        
+        var actionHappened = true;
     
         switch (action) {
             case wumpusGame.PlayerAction.Forward:
                 var neighborTile = this.getTile().getNeighborTile(this.direction);
-                if (!neighborTile) return;
-                // move player to new tile
-                this.movePlayer(neighborTile.getTilePosition());
+                if (neighborTile) {
+                    // move player to new tile
+                    this.movePlayer(neighborTile.getTilePosition());
+                }
+                else {
+                    actionHappened = false;
+                }
                 break;
             case wumpusGame.PlayerAction.Backward:
                 var neighborTile = this.getTile().getNeighborTile(wumpusGame.Direction.getOppositeDirection(this.direction));
-                if (!neighborTile) return;
-                // move player to new tile
-                this.movePlayer(neighborTile.getTilePosition());
+                if (neighborTile) {
+                    // move player to new tile
+                    this.movePlayer(neighborTile.getTilePosition());
+                }
+                else {
+                    actionHappened = false;
+                }
                 break;
             case wumpusGame.PlayerAction.TurnClockwise:
                 // update direction
@@ -146,8 +178,12 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 this.setDirection(wumpusGame.Direction.getTurnedDirection(this.direction, false));
                 break;
             case wumpusGame.PlayerAction.Exit:
-                if (!this.getTile().hasObject(wumpusGame.ObjectTypes.Entrance)) return;   // nothing happened
-                this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
+                if (this.getTile().hasObject(wumpusGame.ObjectTypes.Entrance)) {
+                    this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
+                }
+                else {
+                    actionHappened = false;
+                }
                 break;
             default:
                 squishy.assert(false, "Invalid player action");

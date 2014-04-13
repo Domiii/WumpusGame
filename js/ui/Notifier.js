@@ -2,8 +2,6 @@
  * This file contains a list of pretty notification items.
  * Based on Notifier.js, from: http://www.srirangan.net/assets/demos/notifier.js/notifier.js
  * TODO: Animate fade-in (and fade-out) of notifications
- * TODO: Add new message to the bottom
- * TODO: Compress list when items are removed
  */
 "use strict";
 
@@ -21,7 +19,7 @@ var NotifierjsConfig = {
         "color": "#fff",
         "font": "normal 13px 'Droid Sans', sans-serif",
         "border-radius": "3px",
-        "width": "100%",
+        "width": "85%",
         
         "opacity": 0.8,
         "-ms-filter": "progid:DXImageTransform.Microsoft.Alpha(Opacity=80)",
@@ -38,7 +36,7 @@ var NotifierjsConfig = {
         "color": "#fff",
         "font": "normal 13px 'Droid Sans', sans-serif",
         "border-radius": "3px",
-        "width": "100%",
+        "width": "85%",
 
         "opacity": 1,
         "-ms-filter": "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)",
@@ -113,7 +111,11 @@ var Notification = function(message, title, closeOnClick, timeOutMillis, iconUrl
         timeOutMillis = NotifierjsConfig.defaultTimeOut;
     }
     if (timeOutMillis) {
-        notificationElement.delay(timeOutMillis).fadeOut();
+        setTimeout((function(self) { return function() {
+            if (self.list) {
+                self.list.removeNotification(self);
+            }
+        }; })(this), timeOutMillis);
     }
     
     if (closeOnClick) {
@@ -139,7 +141,7 @@ var Notification = function(message, title, closeOnClick, timeOutMillis, iconUrl
  */
 var NotificationList = function(config) {
      this.lastId = 0;
-     this.list = [];
+     this.list = [];                // store all notifications in order of apperance
      
      if (!config.containerElement) {
         throw new Error("config.containerElement is not set");
@@ -158,19 +160,33 @@ NotificationList.prototype = {
         notification.id = ++this.lastId;
         notification.list = this;
         
-        // position element in list
-        var pos = 0;
-        for (var key in this.list) {
-            if (!this.list.hasOwnProperty(key)) continue;
-            var elem = this.list[key].notificationElement;
-            pos += parseInt(elem.outerHeight()) + 18;
-        }
-        notification.notificationElement.css("bottom", pos + "px");
-        
         // add to list and to container
-        this.list[notification.id] = notification;
+        this.list.push(notification);
         this.containerElement.prepend(notification.notificationElement);
+        
+        this.repositionNotifications();
         return notification;
+    },
+    
+    /**
+     * After a notification has been added or removed, we re-position other notifications to make a pretty, compact list.
+     * Places newest notifications at the bottom.
+     */
+    repositionNotifications: function() {
+        var gap = 18;
+        var pos = 0;
+        var index = this.list.length-1;
+        for (var i = index; i >= 0; --i) {
+            var notification = this.list[i];
+            if (!notification) continue;
+            
+            notification.index = i;                                        // update index (it might have changed since the last call)
+            
+            var elem = notification.notificationElement;
+            notification.notificationElement.css("bottom", pos + "px");
+            
+            pos += parseInt(elem.outerHeight()) + gap;
+        }
     },
     
     /**
@@ -179,7 +195,8 @@ NotificationList.prototype = {
     removeNotification : function(notification) {
         // remove notification from DOM and from list
         notification.notificationElement.hide();
-        delete this.list[notification.id];
+        delete this.list[notification.index];
+        this.repositionNotifications();
     },
     
     /**

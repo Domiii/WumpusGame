@@ -117,17 +117,18 @@ define(["squishy"], function() {
       */
     wumpusGame.PlayerEvent = {
         Nothing: 0,
-        Move: 1,            // player moved to new tile
-        Turn: 2,            // player changed direction
-        GrabGold: 3,        // player grabbed gold
-        Teleport: 4,        // bats dropped player off somewhere
-        ShootArrow: 5,      // Player shoots arrow
-        ArrowHitWumpus: 6,  // Player killed Wumpus
-        ArrowMissed: 7,     // Arrow missed
-        DeadPit: 8,         // dead in pit
-        DeadWumpus: 9,      // dead through Wumpus
-        Exit: 10           // Player exited
+        Move: 1,            // player moved to new tile (args: tile)
+        Turn: 2,            // player changed direction (args: direction)
+        GrabGold: 3,        // player grabbed gold (args: )
+        Teleport: 4,        // bats dropped player off somewhere (args: )
+        ShootArrow: 5,      // Player shoots arrow (args: )
+        ArrowHitWumpus: 6,  // Player killed Wumpus (args: )
+        ArrowMissed: 7,     // Arrow missed (args: )
+        DeadPit: 8,         // dead in pit (args: )
+        DeadWumpus: 9,      // dead through Wumpus (args: )
+        Exit: 10            // Player exited (args: )
     };
+    wumpusGame.PlayerEvent.AllEvents = Object.getOwnPropertyNames(wumpusGame.PlayerEvent);
 
      
      return wumpusGame;
