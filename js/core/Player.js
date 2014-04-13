@@ -28,7 +28,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         squishy.clone(state, true, this);
 		
         // reset action queue & timer
-        this.actionQueue = [];
+        this.eventQueue = [];
         if (this.actionTimer) {
             clearTimeout(this.actionTimer);
             this.actionTimer = null;
@@ -90,40 +90,38 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     };
 
     /**
-     * Perform the next action in the queue.
+     * Perform the next event in the queue.
      */
-    wumpusGame.Player.prototype.startNextAction = function() {
-        if (this.actionQueue.length == 0) {
-            this.actionTimer = null;
+    wumpusGame.Player.prototype.startNextEvent = function() {
+        if (this.eventQueue.length == 0) {
+            this.eventTimer = null;
             return;
         }
         
         // dequeue action
-        var nextAction = this.actionQueue[0];
-        this.actionQueue.splice(0, 1);
+        var nextAction = this.eventQueue[0];
+        this.eventQueue.splice(0, 1);
         
         // start timer
-        this.actionTimer = setTimeout((function(player, action) { return function() { player.performAction(action, true); }; })(this, nextAction), this.game.playerActionDelay);
+        this.eventTimer = setTimeout(return nextAction; }, this.game.playerActionDelay);
     };
 
      /**
       * Lets the player perform the given wumpusGame.PlayerAction after the default delay.
       */
     wumpusGame.Player.prototype.performActionDelayed = function(action) {
-        this.actionQueue.push(action);
-        if (!this.actionTimer) {
-            this.startNextAction();
-        }
+        (function(player) {
+            this.eventQueue.push(function() { player.performActionNow(action, true); });
+            if (!this.eventTimer) {
+                this.startNextEvent();
+            }
+        )(this);
     };
 
      /**
       * Lets the player perform the given wumpusGame.PlayerAction.
       */
-    wumpusGame.Player.prototype.performAction = function(action, instant) {
-        if (!instant && this.actionTimer) {
-            this.actionQueue.push(action);
-            return;
-        }
+    wumpusGame.Player.prototype.performActionNow = function(action) {
         if (this.game.status != wumpusGame.GameStatus.Playing) return;
     
         switch (action) {
@@ -160,7 +158,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.actionLog.push(action);
         
         // start next action
-        this.startNextAction();
+        this.startNextEvent();
     };
     
     

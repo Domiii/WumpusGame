@@ -78,26 +78,26 @@ require(["squishy"], function() { require(["js/GameLoader"], function(game) { re
 	});
 	
 	squishy.onClick("wumpus-forward", function(evt) {
-		game.player.performAction(wumpusGame.PlayerAction.Forward);
+		game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
 	});
 	squishy.onClick("wumpus-backward", function(evt) {
-		game.player.performAction(wumpusGame.PlayerAction.Backward);
+		game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
 	});
 	squishy.onClick("wumpus-turncw", function(evt) {
-		game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
+		game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
 	});
 	squishy.onClick("wumpus-turnccw", function(evt) {
-		game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+		game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
 	});
 	squishy.onClick("wumpus-exit", function(evt) {
-		game.player.performAction(wumpusGame.PlayerAction.Exit);
+		game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
 	});
     
 
 	// ####################################################################################################
 	// do something
     
-	game.player.performAction(wumpusGame.PlayerAction.Forward);
-	game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
-	game.player.performAction(wumpusGame.PlayerAction.Forward);
+	game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
+	game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+	game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
 });});});

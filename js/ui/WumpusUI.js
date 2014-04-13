@@ -153,27 +153,31 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
         // TODO: Use a consistent key enum
 		if (!northContExisted) {
 			var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
-			$(document).keydown((function(game) { return function(e){
+			$(document).keydown((function(ui) { return function(e){
+                var game = ui.game;
 				if (e.which == arrowKey.up) {
-				   game.player.performAction(wumpusGame.PlayerAction.Forward);
+				   game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
 				}
 				if (e.which == arrowKey.down) { 
-				   game.player.performAction(wumpusGame.PlayerAction.Backward);
+				   game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
 				}
 				if (e.which == arrowKey.right) { 
-				   game.player.performAction(wumpusGame.PlayerAction.TurnClockwise);
+				   game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
 				}
 				if (e.which == arrowKey.left) { 
-				   game.player.performAction(wumpusGame.PlayerAction.TurnCounterClockwise);
+				   game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
 				}
 				if (e.which == 'E'.charCodeAt(0) || e.which == 'e'.charCodeAt(0)) {
-				   game.player.performAction(wumpusGame.PlayerAction.Exit);
+				   game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
 				}
 				if (e.which == 'R'.charCodeAt(0) || e.which == 'r'.charCodeAt(0)) {
 					game.restart();
 				}
+				if (e.which == 'X'.charCodeAt(0) || e.which == 'x'.charCodeAt(0)) {
+					ui.runUserScript();
+				}
 			};
-			})(this.game));
+			})(this));
 		}
 		
 		// remove existing layout classes
