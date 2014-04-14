@@ -128,7 +128,7 @@ define(["squishy"], function() {
         DeadWumpus: 9,      // dead through Wumpus (args: )
         Exit: 10            // Player exited (args: )
     };
-    wumpusGame.PlayerEvent.AllEvents = Object.getOwnPropertyNames(wumpusGame.PlayerEvent);
+    wumpusGame.PlayerEvent.AllNames = Object.getOwnPropertyNames(wumpusGame.PlayerEvent);
 
      
      return wumpusGame;

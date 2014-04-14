@@ -42,9 +42,11 @@ define(["squishy", "./UserScript"], function(squishy) {
         var workerListenerCode = function(event, args) {
             onPlayerEvent(event, args);
         };
-        game.events.playerEvent.addListener(function(event, args) {
-            var argsString = WorkerScriptContext.objToVars(args, 1);
-            self.runUserCode("(" + workerListenerCode + ")(" + event + ", " + argsString + ");");
+        game.events.playerEvent.addListener(function(player, event, args) {
+            var argsString = WorkerScriptContext.objToVarString(args, 1);
+            var code = "(" + workerListenerCode + ")(" + event + ", " + argsString + ");";
+            var script = new wumpusGame.UserScript({name: "__listenercode__playerEvent", codeString: code});
+            self.runScript(script);
         });
         
         // copy config into this context
@@ -97,7 +99,7 @@ define(["squishy", "./UserScript"], function(squishy) {
         }
         this.worker = new Worker("js/core/WorkerScriptCode.js");
         this.worker.onerror = function(event) {
-            throw new Error("Worker failed: " + event.msg + " (" + event.filename + ":" + event.lineno + ")");
+            throw new Error("Worker failed: " + event.message + " (" + event.filename + ":" + event.lineno + ")");
         };
         this.worker.onmessage = (function(self) { return function (event) {
             var data = event.data;
@@ -204,7 +206,7 @@ define(["squishy", "./UserScript"], function(squishy) {
       * @param {UserScript} script A script to be executed.
       */
     WorkerScriptContext.prototype.runUserCode = function(code) {
-        if (!this.worker) throw new Error("Trying to run script while worker is not running: " + (script.length > 60 ? script.substring(0, 60) + "..." : script));
+        if (!this.worker) throw new Error("Trying to run script while worker is not running: " + (code.length > 60 ? code.substring(0, 60) + "..." : script));
         if (this.ready) {
             // go right ahead
             var self = this;
@@ -247,7 +249,7 @@ define(["squishy", "./UserScript"], function(squishy) {
       * The initFunction will be executed anonymously, without arguments.
       */
     WorkerScriptContext.prototype.buildWorkerCode = function(initFunction, globals) {
-        var str = WorkerScriptContext.objToVars(globals);
+        var str = WorkerScriptContext.objToVarString(globals);
         str += "(" + initFunction + ")(); ";
         return str;
     };
@@ -265,11 +267,12 @@ define(["squishy", "./UserScript"], function(squishy) {
         // TODO: Consider using proper stringbuilder for better performance
         
         var str = "";
-        var isArray = typeof(obj) === "array";
+        var isArray = obj instanceof Array;
+        var isObject = typeof(obj) === "object";
         
         if (!layer) {
             layer = 0;
-            squishy.assert(!isArray, "objToVars cannot be called on arrays at the outmost layer. Consider starting with layer = 1.");
+            squishy.assert(!isArray, "objToVarString cannot be called on arrays at the outmost layer. Consider starting with layer = 1.");
         }
         
         // prepare indentation
@@ -283,43 +286,65 @@ define(["squishy", "./UserScript"], function(squishy) {
             indent += "    ";
         }
         
-        if (layer) {
-            // wrap object in parentheses
-            str += (isArray ? "[" : "{") + "\n";
-        }
-        
-        for (var propName in obj) {
-            var prop = obj[propName];
-            var propStr;
-            if (prop.hasAnyProperty()) {
-                // prop is an object
-                propStr = WorkerScriptContext.objToVars(prop, layer+1, indent);
+        // for (var propName in obj) {
+            // if (!obj.hasOwnProperty(propName)) continue;
+        if (isArray || isObject) {        
+            if (layer) {
+                str += (isArray ? "[" : "{") + "\n";
             }
-            else {
-                propStr = prop.toString();
-            }
-            if (!layer) {
-                // unwrap outmost layer
-                str += indent + "var " + propName + " = " + propStr + ";\n";
-            }
-            else {
-                if (isArray) {
-                    str += indent + propStr + ",\n";
+            
+            // iterate over all properties of array or object
+            var iterator = function(propName) {
+                var prop = obj[propName];
+                var propStr = WorkerScriptContext.objToVarString(prop, layer+1, indent);
+                
+                if (!layer) {
+                    // unwrap outmost layer
+                    str += indent + "var " + propName + " = " + propStr + ";\n";
                 }
                 else {
-                    str += indent + propName + " : " + propStr + ",\n";
+                    if (isArray) {
+                        str += indent + propStr + ",\n";
+                    }
+                    else {
+                        str += indent + propName + " : " + propStr + ",\n";
+                    }
+                }
+            };
+            
+            if (isArray) {
+                // array
+                for (var i = 0; i < obj.length; ++i) {
+                    iterator(i);
                 }
             }
+            else {
+                // object
+                Object.getOwnPropertyNames(obj).forEach(iterator);
+            }
+            
+            // remove dangling comma
+            if (str.trim().endsWith(",")) {
+                str = str.substring(0, str.length-1);
+            }
+
+            // close array or object definition
+            if (layer > 0) {
+                str += "\n" + indent;
+                str += isArray ? "]" : "}";
+            }
         }
-        
-        // remove dangling comma
-        if (str.trim().endsWith(",")) {
-            str = str.substring(0, str.length-1);
-        }
-        
-        if (layer > 0) {
-            str += "\n" + indent;
-            str += isArray ? "]" : "}";
+        else {
+            // obj is neither object nor array
+            if (obj == null) {
+                str += "null";
+            }
+            else if (!squishy.isDefined(obj)) {
+                str += "undefined";
+            }
+            else {
+                str += obj.toString();
+            }
         }
         return str;
     };

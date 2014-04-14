@@ -66,15 +66,15 @@ self.lockDown = function(additionalWhiteListSymbols) {
         
         // globals from utility libraries
         "printStackTrace": 1,
-        "require": 1,                // require is not configurable, but luckily its harmless without importScripts
-        "define": 1,                // require is not configurable, but luckily its harmless without importScripts
-        "requirejs": 1,                // require is not configurable, but luckily its harmless without importScripts
+        "require": 1,                   // require is not configurable, but luckily its harmless without importScripts
+        "define": 1,                    // require is not configurable, but luckily its harmless without importScripts
+        "requirejs": 1,                 // require is not configurable, but luckily its harmless without importScripts
         
         // harmless helper objects
-        "runScript": 1,                // as harmless as eval
+        "runScript": 1,                // glorified eval
         "initScriptContext": 1,        // initialize context for interacting with the remote simulator
         "scriptGlobals": 1,            // the global context object contains all globals for interacting with the remote simulator
-        "lockDown": 1,                // lockDown will be set to null explicitely to check for execution
+        "lockDown": 1,                 // lockDown will be set to null explicitely to check for execution
     };
     
     // add external libraries to safe list
@@ -174,34 +174,16 @@ Object.defineProperty(global, "runScript", {
     configurable: false,
     enumrable: false,
     value: function(code) {
-        // expose script globals
-        for (var key in scriptGlobals) {
-            if (scriptGlobals.hasOwnProperty(key)) {
-                self[key] = scriptGlobals[key];
-            }
-        }
-        
-        // expose everything from the wumpusGame namespace
-        for (var key in wumpusGame) {
-            if (wumpusGame.hasOwnProperty(key)) {
-                self[key] = wumpusGame[key];
-            }
-        }
-        
         try {
             // Don't hand in self for compatability reasons, not security reasons. (Other script contexts might not have "self".)
             (function(self) {
                 postMessage({command: "start"});
                 var result = eval(code);
                 postMessage({command: "stop"});
-                
-                // check for any newly registered event:
-                if (result) {
-                    for (var eventName in wumpusGame.PlayerEvents) {
-                        var globalName = getEventCallbackName(eventName);
-                        scriptGlobals[globalName] = result[globalName];
-                    }
-                }
+                // if (result) {
+                    // console.log("result");
+                    // console.log(result);
+                // }
             })();
         } catch (err) {
             var trace = printStackTrace({e: err});
@@ -211,28 +193,20 @@ Object.defineProperty(global, "runScript", {
                 // Each line has the format: "functionName@url:line:column"
                 var line = trace[i];
                 var functionName = line.split("@", 1)[0].split(" ", 1)[0];
+                var fileName = "";
                 
-                // Ignore everything but actual eval call.
-                if (beforeEval) {
+                // only report it, if it is a user script
+                if (UserScriptFileNameMap[fileName]) {
                     var info = line.split(":");
                     var line = parseInt(info[info.length-2]);
                     var column = parseInt(info[info.length-1]);
                     var displayFunctionName = functionName == "eval" ? null : functionName;
                     args.stacktrace.push({functionName: displayFunctionName, line: line, column: column});
                 }
-                if (functionName === "eval") {
-                    beforeEval = false;
-                }
             }
             
-            if (beforeEval) {
-                // never went into eval(), so all this information should not be given to the user, only to the developer
-                console.warn(err.stack);
-                args.stacktrace = [];
-            }
-            else {
-                console.warn(err.stack);
-            }
+            // warn dev
+            console.warn(err.stack);
             
             // run-time error
             postMessage({command: "error_eval", args: args});
@@ -283,6 +257,34 @@ Object.defineProperty(global, "scriptGlobals",  {
     enumrable: false,
     value: {
         /**
+         * This code is called at the end of the Worker initialization routine.
+         */
+        init: function() {
+            // copy script and game context to global context
+            
+            // expose script globals
+            for (var key in scriptGlobals) {
+                if (scriptGlobals.hasOwnProperty(key)) {
+                    self[key] = scriptGlobals[key];
+                }
+            }
+            
+            // expose everything from the wumpusGame namespace
+            for (var key in wumpusGame) {
+                if (wumpusGame.hasOwnProperty(key)) {
+                    self[key] = wumpusGame[key];
+                }
+            }
+        
+            // create all event globals (so they can be easily overridden)
+            for (var i = 0; i < wumpusGame.PlayerEvent.AllNames.length; ++i) {
+                var eventName = wumpusGame.PlayerEvent.AllNames[i];
+                var globalName = getEventCallbackName(eventName);
+                self[globalName] = null;
+            }
+        },
+    
+        /**
          * Move forward one tile
          */
         moveForward: function() {
@@ -313,10 +315,15 @@ Object.defineProperty(global, "scriptGlobals",  {
             postMessage({command: "action", args: wumpusGame.PlayerAction.Exit});
         },
         
+        /**
+         * Function called to 
+         */
         onPlayerEvent: function(event, args) {
             var eventName = wumpusGame.PlayerEvent.AllNames[event];
             var callbackName = getEventCallbackName(eventName);
-            var callback = this[callbackName];
+            var callback = self[callbackName];
+            
+            //console.log("calling: " + callbackName + "(" + (args ? args.stringify() : args) + ")");
             if (callback) {
                 callback(args);
             }
@@ -343,7 +350,13 @@ Object.defineProperty(global, "scriptGlobals",  {
         switch (cmd) {
             case "init":
                 if (!lockDown) return;         // already initialized
-                var baseUrl = args;
+                var baseUrl = args.baseUrl;
+                scriptGlobals.UserScriptFileNames = args.userScriptFileNames;
+                scriptGlobals.UserScriptFileNameMap = {};
+                for (var i = 0; i < scriptGlobals.UserScriptFileNames.length; ++i) {
+                    var fname = scriptGlobals.UserScriptFileNames[i];
+                    scriptGlobals.UserScriptFileNameMap[fname] = 1;
+                }
                 
                 // import some standard libraries
                 importScripts(baseUrl + "lib/stacktrace.js");
@@ -355,6 +368,9 @@ Object.defineProperty(global, "scriptGlobals",  {
                     if (lockDown) {
                         local.unsecureGlobal = lockDown(arguments);
                         local = null;        // apparently, copying some globals into another object and calling them from there is against the rules
+                        
+                        // ScriptContext-specific initialization code
+                        scriptGlobals.init();
                         postMessage({command: "ready"});
                     }
                 });
@@ -364,7 +380,7 @@ Object.defineProperty(global, "scriptGlobals",  {
                 
                 // run the actual script outside the context of the initializer
                 //local.unsecureGlobal.setTimeout(function() {
-                    runScript(args);
+                    runScript(args.code);
                 //}, 1);
                 break;
             default:

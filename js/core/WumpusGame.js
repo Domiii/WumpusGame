@@ -67,12 +67,12 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
         this.eventLog = [];
         this.setStatus(wumpusGame.GameStatus.Playing);
         
+        // restart script worker
+        this.scriptContext.restartWorker();
+        
         // initialize player
         this.player.initializePlayer(this.initialPlayerState);
         this.player.getTile().setObject(wumpusGame.ObjectTypes.Entrance);
-        
-        // restart script worker
-        this.scriptContext.restartWorker();
         
         // notify all listeners
         this.events.restart.notify();
