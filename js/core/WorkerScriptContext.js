@@ -9,10 +9,11 @@
 define(["squishy", "./UserScript"], function(squishy) {
     var WorkerScriptConstants = {
         /**
+         * A unique identifier to figure out the origin of a user-supplied script. 
          * 
          * @const
          */
-        UserScriptName: "userscript"
+        UserScriptName: "_userscript_912313_"
     };
 
      /**
@@ -36,18 +37,18 @@ define(["squishy", "./UserScript"], function(squishy) {
             scriptError: new squishy.Event(this)
         }
 
-        // register with player events
-        // var self = this;
-        // var workerListenerCode = function(event, args) {
-            // onPlayerEvent(event, args);
-        // }
-        // game.events.playerEvent.addListener(function(event, args) {
-            // // TODO: Fix stacktrace here
-            // self.runUserCode("(" + workerListenerCode + ")();");
-        // });
+        // register player event callback
+        var self = this;
+        var workerListenerCode = function(event, args) {
+            onPlayerEvent(event, args);
+        };
+        game.events.playerEvent.addListener(function(event, args) {
+            var argsString = WorkerScriptContext.objToVars(args, 1);
+            self.runUserCode("(" + workerListenerCode + ")(" + event + ", " + argsString + ");");
+        });
         
         // copy config into this context
-        //squishy.clone(config, this, false);
+        squishy.clone(config, this, false);
     };
     
      /**
@@ -96,7 +97,7 @@ define(["squishy", "./UserScript"], function(squishy) {
         }
         this.worker = new Worker("js/core/WorkerScriptCode.js");
         this.worker.onerror = function(event) {
-            throw new Error("Worker failed: " + event.msg + "(" + event.filename + ":" + event.lineno + ")");
+            throw new Error("Worker failed: " + event.msg + " (" + event.filename + ":" + event.lineno + ")");
         };
         this.worker.onmessage = (function(self) { return function (event) {
             var data = event.data;
@@ -137,7 +138,11 @@ define(["squishy", "./UserScript"], function(squishy) {
         this.running = true;
         this.commandQueue = [];
         
-        this.worker.postMessage({command: "init", args: baseUrl});    // start worker
+        var initArgs = {
+            baseUrl: baseUrl,
+            userScriptFileNames: [WorkerScriptConstants.UserScriptName]
+        };
+        this.worker.postMessage({command: "init", args: initArgs});    // start worker
     };
     
      /**
@@ -167,7 +172,7 @@ define(["squishy", "./UserScript"], function(squishy) {
     
     
      /**
-      * Restarts the worker because a script ran too long.
+      * Called as soon as the Worker is fully initialized.
       */
     WorkerScriptContext.prototype.onReady = function() {
         for (var i = 0; i < this.commandQueue.length; ++i) {
@@ -177,7 +182,7 @@ define(["squishy", "./UserScript"], function(squishy) {
     };
     
      /**
-      * Restarts the worker because a script ran too long.
+      * Restarts the worker when a script ran too long.
       */
     WorkerScriptContext.prototype.onScriptTimeout = function() {
         this.events.scriptTimeout.notify();
@@ -229,92 +234,95 @@ define(["squishy", "./UserScript"], function(squishy) {
         var code = script.getCodeString();
         var cmd = {
             command: "run",
-            args: code
+            args: { 
+                code: code,
+                name: script.name
+            }
         };
         this.worker.postMessage(cmd);
     };
     
-    // /**
-     // * Creates a string from a set of named globals that will be provided to the worker.
-     // * The initFunction will be executed anonymously, without arguments.
-     // */
-    // WorkerScriptContext.prototype.buildWorkerCode = function(initFunction, globals) {
-        // var str = WorkerScriptContext.objToVars(globals);
-        // str += "(" + initFunction + ")(); ";
-        // return str;
-    // };
+    /**
+      * Creates a string from a set of named globals that will be provided to the worker.
+      * The initFunction will be executed anonymously, without arguments.
+      */
+    WorkerScriptContext.prototype.buildWorkerCode = function(initFunction, globals) {
+        var str = WorkerScriptContext.objToVars(globals);
+        str += "(" + initFunction + ")(); ";
+        return str;
+    };
     
-    // /**
-     // * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.
-     // * It also unwraps the outmost layer.
-     // * For example, {a : 'a', x = { y = 2 }} becomes:
-     // *         "var a = 'a';
-     // *        var x = { 
-     // *            y = 2;
-     // *        };"
-     // */
-    // WorkerScriptContext.objToVarString = function(obj, layer, indent) {
-        // // TODO: Consider using proper stringbuilder for better performance
+    /**
+      * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.
+      * It also unwraps the outmost layer.
+      * For example, {a : 'a', x = { y = 2 }} becomes:
+      *         "var a = 'a';
+      *        var x = { 
+      *            y = 2;
+      *        };"
+      */
+    WorkerScriptContext.objToVarString = function(obj, layer, indent) {
+        // TODO: Consider using proper stringbuilder for better performance
         
-        // var str = "";
-        // var isArray = typeof(obj) === "array";
+        var str = "";
+        var isArray = typeof(obj) === "array";
         
-        // if (!layer) {
-            // layer = 0;
-            // squishy.assert(!isArray, "objToVars cannot be called on arrays at the outmost layer. Consider starting with layer = 1.");
-        // }
+        if (!layer) {
+            layer = 0;
+            squishy.assert(!isArray, "objToVars cannot be called on arrays at the outmost layer. Consider starting with layer = 1.");
+        }
         
-        // // prepare indentation
-        // if (!indent) {
-            // indent = "";
-            // for (var i = 0; i < layer; ++i) {
-                // indent += "    ";
-            // }
-        // }
-        // else {
-            // indent += "    ";
-        // }
+        // prepare indentation
+        if (!indent) {
+            indent = "";
+            for (var i = 0; i < layer; ++i) {
+                indent += "    ";
+            }
+        }
+        else {
+            indent += "    ";
+        }
         
-        // if (layer) {
-            // // wrap object in the right parentheses
-            // str += (isArray ? "[" : "{") + "\n";
-        // }
+        if (layer) {
+            // wrap object in parentheses
+            str += (isArray ? "[" : "{") + "\n";
+        }
         
-        // for (var propName in obj) {
-            // var prop = obj[propName];
-            // var propStr;
-            // if (prop.hasAnyProperty()) {
-                // // prop is an object
-                // propStr = WorkerScriptContext.objToVars(prop, layer+1, indent);
-            // }
-            // else {
-                // propStr = prop.toString();
-            // }
-            // if (!layer) {
-                // // unwrap outmost layer
-                // str += indent + "var " + propName + " = " + propStr + ";\n";
-            // }
-            // else {
-                // if (isArray) {
-                    // str += indent + propStr + ",\n";
-                // }
-                // else {
-                    // str += indent + propName + " : " + propStr + ",\n";
-                // }
-            // }
-        // }
+        for (var propName in obj) {
+            var prop = obj[propName];
+            var propStr;
+            if (prop.hasAnyProperty()) {
+                // prop is an object
+                propStr = WorkerScriptContext.objToVars(prop, layer+1, indent);
+            }
+            else {
+                propStr = prop.toString();
+            }
+            if (!layer) {
+                // unwrap outmost layer
+                str += indent + "var " + propName + " = " + propStr + ";\n";
+            }
+            else {
+                if (isArray) {
+                    str += indent + propStr + ",\n";
+                }
+                else {
+                    str += indent + propName + " : " + propStr + ",\n";
+                }
+            }
+        }
         
-        // // remove dangling comma
-        // if (str.trim().endsWith(",")) {
-            // str = str.substring(0, str.length-1);
-        // }
+        // remove dangling comma
+        if (str.trim().endsWith(",")) {
+            str = str.substring(0, str.length-1);
+        }
         
-        // if (layer > 0) {
-            // str += "\n" + indent;
-            // str += isArray ? "]" : "}";
-        // }
-        // return str;
-    // };
+        if (layer > 0) {
+            str += "\n" + indent;
+            str += isArray ? "]" : "}";
+        }
+        return str;
+    };
     
     return WorkerScriptContext;
 });
