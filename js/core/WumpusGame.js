@@ -13,7 +13,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
         this.initialPlayerState = config.playerState;
         
         // copy settings into game object
-        squishy.clone(config.gameSettings, false, this);
+        squishy.clone(config.gameSettings, true, this);
         
         // create event objects
         this.events = {
@@ -30,6 +30,9 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptCont
         this.grid = new wumpusGame.Grid(this, config.gridConfig);
         this.player = new wumpusGame.Player(this);
         this.scriptContext = new WorkerScriptContext(this, config.scriptConfig);
+        
+        // remember config
+        this.config = config;
         
         if (!this.worldGenerator) {
             // if no custom world generator is available, use the default one

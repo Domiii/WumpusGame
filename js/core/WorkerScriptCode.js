@@ -91,19 +91,14 @@ self.lockDown = function(additionalWhiteListSymbols) {
     
     // add all "orphaned" globals (properties that are not revealed by getOwnPropertyNames, possibly due to some bug)
     var allBadProps = {};
-    var x = {};
     for (var prop in global) {
         unsecureGlobal[prop] = global[prop];
         allBadProps[prop] = global[prop];
-        x[prop] = global[prop];
     }
     
     // add all other possible globals
     Object.getOwnPropertyNames( global ).forEach( function( prop ) {
         allBadProps[prop] = global[prop];
-        if (x[prop]) {
-            delete x[prop];
-        }
     });
     
     // override all found props
@@ -180,33 +175,34 @@ Object.defineProperty(global, "runScript", {
                 postMessage({command: "start"});
                 var result = eval(code);
                 postMessage({command: "stop"});
-                // if (result) {
-                    // console.log("result");
-                    // console.log(result);
-                // }
             })();
         } catch (err) {
             var trace = printStackTrace({e: err});
             var args = {message: err.message, stacktrace: [] };
             var beforeEval = true;
+            
+            // Each line has a format similar to: "functionName@url:line:column"
+            var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
             for (var i = 0; i < trace.length; ++i) {
-                // Each line has the format: "functionName@url:line:column"
                 var line = trace[i];
-                var functionName = line.split("@", 1)[0].split(" ", 1)[0];
-                var fileName = "";
+                var match = frameRegex.exec(line);      // extract frame info from frame string
                 
-                // only report it, if it is a user script
-                if (UserScriptFileNameMap[fileName]) {
-                    var info = line.split(":");
-                    var line = parseInt(info[info.length-2]);
-                    var column = parseInt(info[info.length-1]);
-                    var displayFunctionName = functionName == "eval" ? null : functionName;
-                    args.stacktrace.push({functionName: displayFunctionName, line: line, column: column});
+                if (match) {
+                    var functionName = match[1];
+                    var fileName = match[2];
+                    var line = parseInt(match[3]);
+                    var column = parseInt(match[4]);
+                
+                    // only report it, if it is a user script
+                    if (UserScriptFileNameMap[fileName]) {
+                        var displayFunctionName = functionName === "eval" ? null : functionName;
+                        args.stacktrace.push({fileName: fileName, functionName: displayFunctionName, line: line, column: column});
+                    }
                 }
             }
             
             // warn dev
-            console.warn(err.stack);
+            console.warn(trace.join("\n"));
             
             // run-time error
             postMessage({command: "error_eval", args: args});

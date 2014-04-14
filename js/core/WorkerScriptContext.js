@@ -117,7 +117,7 @@ define(["squishy", "./UserScript"], function(squishy) {
              
             // ignore user messages that:
             //   1. were sent before termination and arrived after termination
-            //   2. were sent by the worker while it was not "active"
+            //   2. were sent after "stop" was sent
             if (!self.running || !self.scriptRunning) return;
             
             var player = self.game.player;
@@ -131,6 +131,7 @@ define(["squishy", "./UserScript"], function(squishy) {
                     player.performActionDelayed(args);
                     break;
                 case "error_eval":
+                console.log("error_eval");
                     self.events.scriptError.notify(args.message, args.stacktrace);
                     self.stopScript(true);
                     break;
@@ -206,25 +207,9 @@ define(["squishy", "./UserScript"], function(squishy) {
       * @param {UserScript} script A script to be executed.
       */
     WorkerScriptContext.prototype.runUserCode = function(code) {
-        if (!this.worker) throw new Error("Trying to run script while worker is not running: " + (code.length > 60 ? code.substring(0, 60) + "..." : script));
-        if (this.ready) {
-            // go right ahead
-            var self = this;
-            
-            // notify and start timer to make sure, the user script won't run forever
-            this.events.scriptStarted.notify();
-            this.scriptRunning = true;
-            this.scriptTimer = setTimeout(function() { if (self.scriptRunning) { self.onScriptTimeout(); } }, this.defaultScriptTimeout);
-        
-            // create script object and run it
-            var script = new wumpusGame.UserScript({name: WorkerScriptConstants.UserScriptName, codeString: code});
-            this.runScript(script);
-        }
-        else {
-            // wait until its ready
-            var self = this;
-            this.commandQueue.push(function() { self.runUserCode(code); } );
-        }
+        // create script object and run it
+        var script = new wumpusGame.UserScript({name: WorkerScriptConstants.UserScriptName, codeString: code});
+        this.runScript(script);
     };
 
      /**
@@ -233,15 +218,31 @@ define(["squishy", "./UserScript"], function(squishy) {
       * @param {UserScript} script A script to be executed.
       */
     WorkerScriptContext.prototype.runScript = function(script) {
-        var code = script.getCodeString();
-        var cmd = {
-            command: "run",
-            args: { 
-                code: code,
-                name: script.name
-            }
-        };
-        this.worker.postMessage(cmd);
+        if (!this.worker) throw new Error("Trying to run script while worker is not running: " + (code.length > 60 ? code.substring(0, 60) + "..." : script));
+        if (this.ready) {
+            // go right ahead:
+            
+            // notify listeners
+            this.events.scriptStarted.notify();
+            
+            // start timer to make sure, the user script won't run forever
+            this.scriptRunning = true;
+            this.scriptTimer = setTimeout((function(self) { return function() { if (self.scriptRunning) { self.onScriptTimeout(); } } })(this), this.defaultScriptTimeout);
+        
+            var code = script.getCodeString();
+            var cmd = {
+                command: "run",
+                args: { 
+                    code: code,
+                    name: script.name
+                }
+            };
+            this.worker.postMessage(cmd);
+        }
+        else {
+            // wait until its ready
+            this.commandQueue.push((function(self) { return function() { self.runScript(script); }; })(this));
+        }
     };
     
     /**

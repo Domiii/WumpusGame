@@ -135,8 +135,15 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                 // display notification
                 var frame = stacktrace[0];
                 var info;
+                console.log(frame.functionName);
                 if (frame) {
-                    info = (frame.functionName ? "from " + frame.functionName + "()" : "") + " - line " + frame.line + ", column " + frame.column + "\n";
+                    if (ui.scriptEditor) {
+                        // focus on line
+                        ui.scriptEditor.gotoLine(frame.line, frame.column, true);
+                    }
+                    
+                    // create complete error message
+                    info = (frame.functionName ? "in " + frame.functionName + "()" : "") + " - line " + frame.line + ", column " + frame.column + "\n";
                     for (var i = 1; i < stacktrace.length; ++i) {
                         frame = stacktrace[i];
                         info += "called from " + (frame.functionName ? frame.functionName + "() at " : "") + "line " + frame.line + ", column " + frame.column + "\n";
