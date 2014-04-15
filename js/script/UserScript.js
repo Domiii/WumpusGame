@@ -2,8 +2,68 @@
  * This file contains a wrapper for user-supplied Javascript strings.
  */
  "use strict";
- 
-define(["../core/WumpusGame.Def"], function(wumpusGame) {
+
+define(["squishy", "squishy/../squishy.crypto"], function() {
+    /**
+     * The same UserScript may be run in many different contexts at the same time.
+     * In order to identify the execution context, we need to wrap it in a unique instance with a unique id.
+     */
+    squishy.UserScriptInstance = function(context, script) {
+        this.context = context;
+        this.contextId = context.contextId;     // this id changes on restart
+        this.script = script;
+        
+        this.instanceId = squishy.strongRandomUInt32();       // this id is known by the script code
+        this.instanceKey = squishy.strongRandomUInt32();      // this is a private key, not to be exposed to the code running in the script context
+        this.running = true;
+    };
+    
+    squishy.UserScriptInstance.prototype = {
+        /**
+         * Whether this script instance is still running.
+         */
+        isRunning: function() {
+            return this.running;
+        },
+        
+        /**
+         * Whether the context is still the same as when the script started.
+         * If it is not, any input from this script should be ignored.
+         */
+        isContextActive: function() {
+            return this.contextId == this.context.contextId && this.context.running;
+        },
+        
+        /**
+         * Send "signed" message to worker context.
+         */
+        postMessage: function(msg) {
+            if (!this.running) {
+                console.warn("Trying to send script message to Worker while script is not running: " + this);
+                return;
+            }
+            
+            msg.instanceId = script.instanceId;
+            msg.instanceKey = script.instanceKey;
+            
+            this.context.postMessage(msg);
+        },
+        
+        /**
+         * Send "signed" command message to worker context.
+         */
+        postCommand: function(cmd, args) {
+            this.postMessage({command: cmd, args: args});
+        },
+        
+        toString: function() {
+            return this.script.toString();
+        },
+    };
+
+
+    var lastScriptId = 0;
+
      /**
       * Creates a new instance of a user-supplied script.
       * A (user-supplied) script is just a string that can be edited by a script editor and interpreted by Google Caja.
@@ -12,16 +72,18 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
       * @param {Element} [config.name] The name of this script (can be used for debugging to identify the script).
       * @param {Element} [config.codeString] The actual script as a string.
       */
-    wumpusGame.UserScript = function(config) {
+    squishy.UserScript = function(config) {
         // shallow-copy config options into this object
         squishy.clone(config, false, this);
+        
+        this.scriptId = ++lastScriptId;       // this is just for bookkeeping
         
         squishy.assert(typeof config.codeString === "string", "config.codeString is empty or otherwise invalid");
     };
     
-    wumpusGame.UserScript.prototype = {
+    squishy.UserScript.prototype = {
         /**
-         * Add some stuff for debugging and safety purposes.
+         * Add "code id" for debugging purposes.
          */
         getCodeString : function() {
             var code = this.codeString;
@@ -29,8 +91,12 @@ define(["../core/WumpusGame.Def"], function(wumpusGame) {
                 code += "\n//@ sourceURL=" + this.name;
             }
             return code;
+        },
+        
+        toString: function() {
+            return this.name + " (" + this.scriptId + ")";
         }
     };
     
-    return wumpusGame.UserScript;
+    return squishy.UserScript;
 });

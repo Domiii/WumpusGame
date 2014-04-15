@@ -1,6 +1,7 @@
 /**
  * This file provides the UI for an instance of ACE script editor.
  * The API can be found here: http://ace.c9.io/#nav=api&api=editor
+ * TODO: Add auto-completion (http://stackoverflow.com/questions/13545433/autocompletion-in-ace-editor)
  */
 "use strict";
  

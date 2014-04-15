@@ -4,18 +4,17 @@
  
 "use strict";
 
-// TODO: Script time out
-// TODO: Enforce game rules
-// TODO: Stop script Button
 // TODO: Show info panel -- implement proper UI
-
 // TODO: Proper random generator (not more than one neighboring object per indicator tile)
-// TODO: Better code editor error management
+
 
 // load everything and go
 define(["WumpusGame/core/WumpusGame"], function() {
     // ####################################################################################################
     // configure the game
+    
+    squishy.getGlobalContext().DEBUG = true;
+    
     
     var gameConfig = {
         // points for different actions

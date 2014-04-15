@@ -7,6 +7,9 @@
 "use strict";
 
 define(["squishy", "./UserScript"], function(squishy) {
+    // ################################################################################################################################################################
+    // static variables
+
     var WorkerScriptConstants = {
         /**
          * A unique identifier to figure out the origin of a user-supplied script. 
@@ -15,7 +18,16 @@ define(["squishy", "./UserScript"], function(squishy) {
          */
         UserScriptName: "_userscript_912313_"
     };
+    
+    /**
+     * Used to generate unique id for each worker.
+     */
+    var lastContextId = 0;
 
+
+    // ################################################################################################################################################################
+    // Constructor
+    
      /**
       * Constructs a ScriptContext object which determines how a script is executed.
       * 
@@ -34,7 +46,8 @@ define(["squishy", "./UserScript"], function(squishy) {
             scriptFinished: new squishy.Event(this),
             scriptCancelled: new squishy.Event(this),
             scriptTimeout: new squishy.Event(this),
-            scriptError: new squishy.Event(this)
+            scriptError: new squishy.Event(this),
+            scriptInvalidMessage: new squishy.Event(this)      // args: message, scriptInstance
         }
 
         // register player event callback
@@ -45,13 +58,18 @@ define(["squishy", "./UserScript"], function(squishy) {
         game.events.playerEvent.addListener(function(player, event, args) {
             var argsString = WorkerScriptContext.objToVarString(args, 1);
             var code = "(" + workerListenerCode + ")(" + event + ", " + argsString + ");";
-            var script = new wumpusGame.UserScript({name: "__listenercode__playerEvent", codeString: code});
+            var script = new squishy.UserScript({name: "__listenercode__playerEvent", codeString: code});
             self.runScript(script);
         });
         
         // copy config into this context
         squishy.clone(config, this, false);
     };
+    
+    
+    // ################################################################################################################################################################
+    // Start & stop worker
+    
     
      /**
       * Whether a script is currently running.
@@ -101,53 +119,22 @@ define(["squishy", "./UserScript"], function(squishy) {
         this.worker.onerror = function(event) {
             throw new Error("Worker failed: " + event.message + " (" + event.filename + ":" + event.lineno + ")");
         };
-        this.worker.onmessage = (function(self) { return function (event) {
-            var data = event.data;
-            var cmd = data.command;
-            var args = data.args;
-            
-            console.log(cmd + self.scriptRunning);
-            
-            // messages that are independent of user-scripts
-            switch (cmd) {
-                case "ready":
-                    // can start
-                    self.ready = true;
-                    self.onReady();
-                    break;
-            }
-             
-            // ignore user messages that:
-            //   1. were sent before termination and arrived after termination
-            //   2. were sent after "stop" was sent
-            if (!self.running || !self.scriptRunning) return;
-            
-            var player = self.game.player;
-            
-            switch (cmd) {
-                case "stop":
-                    self.onScriptFinished();
-                    break;
-                case "action":
-                    // action to be performed by agent
-                    player.performActionDelayed(args);
-                    break;
-                case "error_eval":
-                    self.events.scriptError.notify(args.message, args.stacktrace);
-                    self.stopScript(true);
-                    break;
-            }
-        };})(this);
         
-        this.scriptRunning = 0;
+        this.worker.onmessage = this.onmessage.bind(this);
+        
+        // setup state machine
+        this.contextId = ++lastContextId;
+        this.runningScriptInstances = {};
         this.running = true;
         this.commandQueue = [];
         
-        var initArgs = {
-            baseUrl: baseUrl,
-            userScriptFileNames: [WorkerScriptConstants.UserScriptName]
-        };
-        this.worker.postMessage({command: "init", args: initArgs});    // start worker
+        if (DEBUG) {
+            // keep track of all messages sent forth and back
+            this.protocolLog = [];
+        }
+        
+        // send initialization message
+        this.initializeGuest(baseUrl);
     };
     
      /**
@@ -155,52 +142,169 @@ define(["squishy", "./UserScript"], function(squishy) {
       */
     WorkerScriptContext.prototype.stopWorker = function() {
         if (!this.worker) return;
-        this.stopScript();
+        this.runningScriptInstances.forEach(function(prop) {
+            if (this.runningScriptInstances.hasOwnProperty(prop)) {
+                var scriptInstance = this.runningScriptInstances[prop];
+                this.stopScript(scriptInstance, true);
+            }
+        });
         this.ready = false;
         this.running = false;
         this.worker.terminate();
         this.worker = null;
     };
     
+    
+    // ################################################################################################################################################################
+    // Protocol implementation
+    
      /**
-      * Cancel the currently running script.
+      * Send message to guest.
       */
-    WorkerScriptContext.prototype.stopScript = function(dontNotify) {
-        if (this.scriptRunning) {
-            clearTimeout(this.scriptTimer);
-            --this.scriptRunning;
-            this.scriptTimer = null;
-            if (!dontNotify) 
-                this.events.scriptCancelled.notify();
+    WorkerScriptContext.prototype.postMessage = function(msg) {
+        squishy.assert(this.worker, "Trying to postMessage while worker is not running.");
+        
+        if (DEBUG) {
+            this.protocolLog.push(msg);
+        }
+        this.worker.postMessage(msg);
+    };
+    
+    /**
+     * Is called after a new Worker has started.
+     * Initializes guest environment.
+     */
+    WorkerScriptContext.prototype.initializeGuest = function(baseUrl) {
+        var initArgs = {
+            workerId: this.workerId,
+            baseUrl: baseUrl,
+            userScriptFileNames: [WorkerScriptConstants.UserScriptName]
+        };
+        this.postMessage({command: "init", args: initArgs});    // start worker
+    };
+    
+    /**
+     * Called whenever a message is received by the host.
+     */
+    WorkerScriptContext.prototype.onmessage = function (event) {
+        var data = event.data;
+        var instanceId = data.instanceId;
+        var cmd = data.command;
+        var args = data.args;
+        
+        // Script-independent WorkerScriptContext protocol
+        switch (cmd) {
+            case "ready":
+                // worker finished initialization
+                this.ready = true;
+                this.onReady();
+                return;
+        }
+         
+        // ignore user messages that were sent before termination and arrived after termination
+        if (!this.running) return;
+        
+        // Retrieve the script instance that sent this message.
+        var scriptInstance = this.runningScriptInstances[instanceId];
+        if (!scriptInstance || !scriptInstance.isRunning()) {
+            // The script that sent this message is gone (possibly a left-over message of a terminated script).
+            console.warn("Message received from invalid scriptInstance (" + instanceId + "): " + cmd + "; args: " + args.stringify());    // TODO: Localization
+            this.events.scriptInvalidMessage.notify(scriptInstance, event.data);
+            return;
+        }
+        
+        switch (cmd) {
+            // Script-dependent WorkerScriptContext protocol
+            case "start":
+                if (key != scriptInstance.instanceKey) {
+                    // The start message is used to start the script timeout timer. If a user can fake the message, user code can keep running forever.
+                    // If there is an invalid start message: There either is a bug in security-critical code, or someone is trying to cheat.
+                    console.warn("Illegal start message from userscript: " + scriptInstance);    // TODO: Localization
+                    this.events.scriptInvalidMessage.notify(scriptInstance, event.data);
+                    this.restartWorker();
+                    return;
+                }
+                
+                // start script timeout timer that kills long-running scripts
+                scriptInstance.scriptTimer = setTimeout(
+                    (function(self, scriptInstance) { return function() { 
+                        if (scriptInstance.isRunning()) { 
+                            self.onScriptTimeout(scriptInstance);
+                        }
+                    }})(this, scriptInstance),
+                    this.defaultScriptTimeout);
+                break;
+            case "stop":
+                var key = args;
+                if (key != scriptInstance.instanceKey) {
+                    // The stop message is used to stop the script timeout timer. If a user can fake the message, user code can keep running forever.
+                    // If there is an invalid stop message: There either is a bug in security-critical code, or someone is trying to cheat.
+                    console.warn("Illegal stop message from userscript: " + scriptInstance);    // TODO: Localization
+                    this.events.scriptInvalidMessage.notify(scriptInstance, event.data);
+                    this.restartWorker();
+                    return;
+                }
+                this.onScriptFinished(scriptInstance);
+                break;
+            case "error_eval":
+                this.events.scriptError.notify(scriptInstance, args.message, args.stacktrace);
+                this.stopScript(scriptInstance);
+                break;
+                
+            // custom messages
+            // TODO: Move them out of here
+            case "action":
+                // action to be performed by agent
+                var player = this.game.player;
+                player.performActionDelayed(args);
+                break;
         }
     };
     
-    
      /**
-      * Called as soon as the Worker is fully initialized.
+      * Called when the guest finished initialization.
+      * Runs queued commands.
       */
     WorkerScriptContext.prototype.onReady = function() {
         for (var i = 0; i < this.commandQueue.length; ++i) {
             var cmd = this.commandQueue[i];
             cmd();
         }
+        this.commandQueue = [];
+    };
+    
+    
+    // ################################################################################################################################################################
+    // Run, stop and manage UserScripts and UserScriptInstances
+    
+     /**
+      * Cancel the currently running script.
+      */
+    WorkerScriptContext.prototype.stopScript = function(scriptInstance, dontNotify) {
+        if (scriptInstance.scriptTimer) {
+            clearTimeout(scriptInstance.scriptTimer);
+        }
+        if (scriptInstance.running) {
+            scriptInstance.running = false;
+            if (!dontNotify) 
+                this.events.scriptCancelled.notify(scriptInstance);
+        }
     };
     
      /**
       * Restarts the worker when a script ran too long.
       */
-    WorkerScriptContext.prototype.onScriptTimeout = function() {
-        this.events.scriptTimeout.notify();
-        this.stopScript(true);
+    WorkerScriptContext.prototype.onScriptTimeout = function(scriptInstance) {
+        this.events.scriptTimeout.notify(scriptInstance);
         this.restartWorker();
     };
     
      /**
       * Notifies listeners of the scriptFinished event.
       */
-    WorkerScriptContext.prototype.onScriptFinished = function() {
-        this.stopScript(true);
-        this.events.scriptFinished.notify();
+    WorkerScriptContext.prototype.onScriptFinished = function(scriptInstance) {
+        this.stopScript(scriptInstance, true);
+        this.events.scriptFinished.notify(scriptInstance);
     };
 
      /**
@@ -211,7 +315,7 @@ define(["squishy", "./UserScript"], function(squishy) {
     WorkerScriptContext.prototype.runUserCode = function(code) {
         // create script object and run it
         var script = new wumpusGame.UserScript({name: WorkerScriptConstants.UserScriptName, codeString: code});
-        this.runScript(script);
+        return this.runScript(script);
     };
 
      /**
@@ -220,33 +324,47 @@ define(["squishy", "./UserScript"], function(squishy) {
       * @param {UserScript} script A script to be executed.
       */
     WorkerScriptContext.prototype.runScript = function(script) {
-        if (!this.worker) throw new Error("Trying to run script while worker is not running: " + (code.length > 60 ? code.substring(0, 60) + "..." : script));
+        var scriptInstance = new squishy.UserScriptInstance(this, script);
+        this.runScriptInstance(scriptInstance);
+        return scriptInstance;
+    };
+
+     /**
+      * Runs the given ScriptInstance in this context.
+      * 
+      * @param {UserScript} script A script to be executed.
+      */
+    WorkerScriptContext.prototype.runScriptInstance = function(scriptInstance) {
+        squishy.assert(this.worker, "Trying to run ScriptInstance while worker has not been started yet: " + scriptInstance);
+        
         if (this.ready) {
-            // go right ahead:
+            // Guest has been initialized:
+            squishy.assert(!scriptInstance.ran, "UserScriptInstances must not be executed more than once: " + scriptInstance);
+            scriptInstance.ran = true;
             
             // notify listeners
-            this.events.scriptStarted.notify();
+            this.events.scriptStarted.notify(scriptInstance);
             
             // start timer to make sure, the user script won't run forever
-            ++this.scriptRunning;
-            this.scriptTimer = setTimeout((function(self) { return function() { if (self.scriptRunning) { self.onScriptTimeout(); } } })(this), this.defaultScriptTimeout);
+            this.runningScriptInstances[scriptInstance.instanceId] = scriptInstance;
         
-            var code = script.getCodeString();
-            var cmd = {
-                command: "run",
-                args: { 
-                // TODO: Add id to script?
-                    code: code,
-                    name: script.name
-                }
-            };
-            this.worker.postMessage(cmd);
+            var code = scriptInstance.script.getCodeString();
+            
+            // run script
+            scriptInstance.postCommand("run", {
+                code: code,
+                name: script.name
+            });
         }
         else {
-            // wait until its ready
-            this.commandQueue.push((function(self) { return function() { self.runScript(script); }; })(this));
+            // queue script, and run it when guest is ready:
+            this.commandQueue.push((function(self) { return function() { self.runScriptInstance(scriptInstance); }; })(this));
         }
     };
+    
+    
+    // ################################################################################################################################################################
+    // Code-to-string helpers:
     
     /**
       * Creates a string from a set of named globals that will be provided to the worker.

@@ -26,7 +26,6 @@ self.lockDown = function(additionalWhiteListSymbols) {
      */
     var whiteList = {
         "self": 1,
-        "onmessage": 1,
         "postMessage": 1,
         "global": 1,
         "whiteList": 1,
@@ -70,9 +69,13 @@ self.lockDown = function(additionalWhiteListSymbols) {
         "define": 1,                    // require is not configurable, but luckily its harmless without importScripts
         "requirejs": 1,                 // require is not configurable, but luckily its harmless without importScripts
         
-        // harmless helper objects
+        // helper & static context globals
+        "currentInstanceId": 1,
+        "postCommand": 1,
+        "postInstanceMessage": 1,
         "runScript": 1,                // glorified eval
-        "initScriptContext": 1,        // initialize context for interacting with the remote simulator
+        "initScriptContext": 1,        // initialize context for interacting with the host
+        "onInitializationFinished": 1, // post-lockDown initialization
         "scriptGlobals": 1,            // the global context object contains all globals for interacting with the remote simulator
         "lockDown": 1,                 // lockDown will be set to null explicitely to check for execution
     };
@@ -162,6 +165,31 @@ Object.defineProperty( Array.prototype, "join", {
 // Run a user-given script
 
 /**
+ * Sends a given message to host, including currentInstanceId.
+ */
+Object.defineProperty(global, "postCommand",  {
+    writable: false,
+    configurable: false,
+    enumrable: false,
+    value: function(cmd, args) {
+        postMessage({instanceId: currentInstanceId, command: cmd, args: args});
+    }
+});
+
+/**
+ * Sends a given message to host, including currentInstanceId.
+ */
+Object.defineProperty(global, "postInstanceMessage",  {
+    writable: false,
+    configurable: false,
+    enumrable: false,
+    value: function(msg) {
+        message.instanceId = currentInstanceId;
+        postMessage(msg);
+    }
+});
+
+/**
  * Fancy version of eval, with proper error reporting.
  */
 Object.defineProperty(global, "runScript", {
@@ -172,9 +200,7 @@ Object.defineProperty(global, "runScript", {
         try {
             // Don't hand in self for compatability reasons, not security reasons. (Other script contexts might not have "self".)
             (function(self) {
-                postMessage({command: "start"});
                 var result = eval(code);
-                postMessage({command: "stop"});
             })();
         } catch (err) {
             var trace = printStackTrace({e: err});
@@ -205,7 +231,7 @@ Object.defineProperty(global, "runScript", {
             console.warn(trace.join("\n"));
             
             // run-time error
-            postMessage({command: "error_eval", args: args});
+            postInstanceMessage({command: "error_eval", args: args});
         }
     }
 });
@@ -217,6 +243,8 @@ Object.defineProperty(global, "runScript", {
 
 /**
  * Simulator-specific initialization of the Worker context.
+ * This code is called before lockDown.
+ *
  * @param {Function} onInitDone Is called after initialization has fininshed.
  */
 Object.defineProperty(global, "initScriptContext",  {
@@ -243,6 +271,41 @@ Object.defineProperty(global, "initScriptContext",  {
     }
 });
 
+/**
+ * This code is called after lockDown.
+ */
+Object.defineProperty(global, "onInitializationFinished",  {
+    writable: false,
+    configurable: false,
+    enumrable: false,
+    value: function(onInitDone) {        
+        // copy script and game context to global context
+        
+        // expose script globals
+        for (var key in scriptGlobals) {
+            if (scriptGlobals.hasOwnProperty(key)) {
+                self[key] = scriptGlobals[key];
+            }
+        }
+        
+        // expose everything from the wumpusGame namespace
+        for (var key in wumpusGame) {
+            if (wumpusGame.hasOwnProperty(key)) {
+                self[key] = wumpusGame[key];
+            }
+        }
+    
+        // create all event globals (so they can be easily overridden)
+        for (var i = 0; i < wumpusGame.PlayerEvent.AllNames.length; ++i) {
+            var eventName = wumpusGame.PlayerEvent.AllNames[i];
+            var globalName = getEventCallbackName(eventName);
+            self[globalName] = null;
+        }
+        
+        onInitDone();
+    }
+});
+
 
 /**
  * Returns the set of simulator-specific globals, available for remote manipulation inside this Worker context.
@@ -253,62 +316,34 @@ Object.defineProperty(global, "scriptGlobals",  {
     enumrable: false,
     value: {
         /**
-         * This code is called at the end of the Worker initialization routine.
-         */
-        init: function() {
-            // copy script and game context to global context
-            
-            // expose script globals
-            for (var key in scriptGlobals) {
-                if (scriptGlobals.hasOwnProperty(key)) {
-                    self[key] = scriptGlobals[key];
-                }
-            }
-            
-            // expose everything from the wumpusGame namespace
-            for (var key in wumpusGame) {
-                if (wumpusGame.hasOwnProperty(key)) {
-                    self[key] = wumpusGame[key];
-                }
-            }
-        
-            // create all event globals (so they can be easily overridden)
-            for (var i = 0; i < wumpusGame.PlayerEvent.AllNames.length; ++i) {
-                var eventName = wumpusGame.PlayerEvent.AllNames[i];
-                var globalName = getEventCallbackName(eventName);
-                self[globalName] = null;
-            }
-        },
-    
-        /**
          * Move forward one tile
          */
         moveForward: function() {
-            postMessage({command: "action", args: wumpusGame.PlayerAction.Forward});
+            postCommand("action", wumpusGame.PlayerAction.Forward);
         },
         /**
          * Move backward one tile
          */
         moveBackward: function() {
-            postMessage({command: "action", args: wumpusGame.PlayerAction.Backward});
+            postCommand("action", wumpusGame.PlayerAction.Backward);
         },
         /**
          * Turn clockwise by 90 degrees
          */
         turnClockwise: function() {
-            postMessage({command: "action", args: wumpusGame.PlayerAction.TurnClockwise});
+            postCommand("action", wumpusGame.PlayerAction.TurnClockwise);
         },
         /**
          * Turn counter clockwise by 90 degrees
          */
         turnCounterClockwise: function() {
-            postMessage({command: "action", args: wumpusGame.PlayerAction.TurnCounterClockwise});
+            postCommand("action", wumpusGame.PlayerAction.TurnCounterClockwise);
         },
         /**
          * Escape through an entrance.
          */
         exit: function() {
-            postMessage({command: "action", args: wumpusGame.PlayerAction.Exit});
+            postCommand("action", wumpusGame.PlayerAction.Exit);
         },
         
         /**
@@ -340,6 +375,8 @@ Object.defineProperty(global, "scriptGlobals",  {
     onmessage = function(event) {
         if (!event.data) return;
         
+        self.currentInstanceId = event.data.instanceId;
+        var instanceKey = event.data.instanceKey;
         var cmd = event.data.command;
         var args = event.data.args;
         
@@ -358,25 +395,28 @@ Object.defineProperty(global, "scriptGlobals",  {
                 importScripts(baseUrl + "lib/stacktrace.js");
                 importScripts(baseUrl + "lib/require.js");
                 
-                // initialize simulator context
+                
+                // ScriptContext-specific initialization code
                 initScriptContext(baseUrl, function() {
                     // lock down the context and make it secure
                     if (lockDown) {
                         local.unsecureGlobal = lockDown(arguments);
                         local = null;        // apparently, copying some globals into another object and calling them from there is against the rules
-                        
-                        // ScriptContext-specific initialization code
-                        scriptGlobals.init();
-                        postMessage({command: "ready"});
+                
+                        // ScriptContext-specific second pass of initialization (post lockDown initialization)
+                        onInitializationFinished(function() {
+                            // this code is called after the second initialization pass has finished
+                            postCommand("ready");
+                        });
                     }
                 });
                 break;
             case "run":
-                if (lockDown) return;        // the context has not been locked down yet. That also implies that initialization has not finished yet.
-                // run the actual script outside the context of the initializer
-                //local.unsecureGlobal.setTimeout(function() {
-                    runScript(args.code);
-                //}, 1);
+                if (lockDown) return;        // the context has not been locked down yet. I.e. initialization has not finished yet.
+                
+                postCommand("start", instanceKey);     // signal host that script has started
+                runScript(args.code);                   // run script
+                postCommand("stop", instanceKey);      // signal host that script has finished
                 break;
             default:
                 // developer error
