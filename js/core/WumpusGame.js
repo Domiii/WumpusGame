@@ -3,7 +3,7 @@
  */
 "use strict";
 
-define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "../script/WorkerScriptContext", "../user/DefaultWorldGenerator"], function(wumpusGame, Tile, Grid, Player, WorkerScriptContext) {
+define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContext", "../user/DefaultWorldGenerator"], function(wumpusGame, Tile, Grid, Player, GameScriptContext) {
      /**
       * Constructs a new game.
       * @constructor 
@@ -23,13 +23,13 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "../script/WorkerSc
             scriptFinished: new squishy.Event(this),
             statusChanged: new squishy.Event(this),
             playerStateChanged: new squishy.Event(this),
-            playerEvent: new squishy.Event(this),
+            playerEvent: new squishy.Event(this)
         };
         
         // create core objects
         this.grid = new wumpusGame.Grid(this, config.gridConfig);
         this.player = new wumpusGame.Player(this);
-        this.scriptContext = new WorkerScriptContext(this, config.scriptConfig);
+        this.scriptContext = new wumpusGame.GameScriptContext(this, config.scriptConfig);
         
         // remember config
         this.config = config;

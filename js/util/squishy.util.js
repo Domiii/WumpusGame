@@ -62,6 +62,7 @@ define([], function() {
         return path;
     };
 
+    
     // ##############################################################################################################
     // Object
 
@@ -187,21 +188,90 @@ define([], function() {
             }
     });
 
+    
+    // ##############################################################################################################
+    // OOP
 
-    Object.defineProperty(Object.prototype, "stringify", {
-        enumerable: false,
-        configurable: false,
-        writable: false,
-        value:
-            /** 
-             * Render object to string, using JSon.
-             */
-            function() {
-                return JSON.stringify(this, null, 4);
+    /**
+     * Javascript-style inheritance.
+     * @see http://stackoverflow.com/questions/15192722/javascript-extending-class/23087859#23087859
+     */
+    squishy.extend = function(baseClass, superCtor, methods) {
+        // create super class ctor with additional checks
+        var superClass = function() {
+            // define base function
+            this._base = function() { baseClass.apply(this, arguments); this._base.called = true; }.bind(this);
+            this._base.called = false;
+            
+            // copy base methods to _base object
+            squishy.clone(baseClass.prototype, false, this._base);
+            
+            // call super class ctor
+            superCtor.apply(this, arguments);
+            
+            // make sure that the _base function was called
+            squishy.assert(this._base.called, "Inherited class did not call _base(...) constructor. Make sure to call _base(...)!");
+        };
+        
+        // make type
+        superClass.prototype = baseClass.prototype;
+        superClass.prototype.constructor = superClass;
+        
+        // copy all methods to new superClass to improve performance by reducing the prototype chain (can access base methods via _base instead)
+        squishy.clone(methods, false, superClass.prototype);
+        
+        // check for abstract methods
+        Object.keys(baseClass.prototype).forEach(function(propName) {
+            var prop = baseClass.prototype[propName];
+            if (prop instanceof squishy.AbstractMethodType) {
+                if (!(superClass.prototype[propName] instanceof Function)) {
+                    throw new Error("Abstract method \"" + propName + "\" must be overridden in super class.");
+                }
             }
-    });
+        });
+        
+        return superClass;
+    };
+    
+    /**
+     * A placeholder for an abstract method.
+     */
+    squishy.AbstractMethodType = function() {};
+    
+    /**
+     * Returns a new abstract method placeholder, which will be checked by squishy.extend.
+     */
+    squishy.abstractMethod = function() {
+        return new squishy.AbstractMethodType();
+    };
+    
+    // var testOOP() {
+        // var A = function(x) {
+            // console.log("create A: " + x);
+        // };
+        // A.prototype = {
+            // x: squishy.abstractMethod()
+        // };
+        
+        // var B = squishy.extend(A,
+            // function(y) {
+                // this._base('a');
+                // console.log("create B: " + y);
+            // }, {
+                // x: function() {}
+            // });
+        
+        // console.log("testing");
+        // var b = new B('b');
+        
+        // console.log(b instanceof A);
+        // console.log(b instanceof B);
+    // }
 
-
+    
+    // ##############################################################################################################
+    // Type checking
+    
     /**
      * Checks whether the given type indicates that the object has been declared and assigned a value.
      *
@@ -240,6 +310,87 @@ define([], function() {
      */
     squishy.isSet = function(obj) {
         return obj !== null && obj !== false;
+    };
+    
+    
+    // ##############################################################################################################
+    // Proper toString function
+    
+    /**
+      * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.
+      */
+    squishy.objToString = function(obj, layer, indent) {
+        // TODO: Consider using proper stringbuilder for better performance
+        var str = "";
+        var isArray = obj instanceof Array;
+        var isObject = typeof(obj) === "object";
+        
+        layer = layer || 0;
+        
+        // prepare indentation
+        if (!indent) {
+            indent = "";
+            for (var i = 0; i <= layer; ++i) {
+                indent += "    ";
+            }
+        }
+        
+        // for (var propName in obj) {
+            // if (!obj.hasOwnProperty(propName)) continue;
+        if (isArray || isObject) {
+            var outerIndent = indent;
+            str += (isArray ? "[" : "{") + "\n";
+            indent += "    ";
+            
+            // iterate over all properties of array or object
+            var iterator = function(propName) {
+                var prop = obj[propName];
+                var propStr = squishy.objToString(prop, layer+1, indent);
+                
+                if (isArray) {
+                    str += indent + propStr + ",\n";
+                }
+                else {
+                    str += indent + propName + " : " + propStr + ",\n";
+                }
+            };
+            
+            if (isArray) {
+                // array
+                for (var i = 0; i < obj.length; ++i) {
+                    iterator(i);
+                }
+            }
+            else {
+                // object
+                Object.getOwnPropertyNames(obj).forEach(iterator);
+            }
+            
+            // remove dangling comma
+            if (str.trim().endsWith(",")) {
+                str = str.substring(0, str.length-1);
+            }
+
+            // close array or object definition
+            str += "\n" + outerIndent;
+            str += isArray ? "]" : "}";
+        }
+        else {
+            // obj is neither object nor array
+            if (obj == null) {
+                str += "null";
+            }
+            else if (!squishy.isDefined(obj)) {
+                str += "undefined";
+            }
+            else if (obj instanceof String) {
+                str += "\"" + obj + "\"";
+            }
+            else {
+                str += obj.toString();
+            }
+        }
+        return str;
     };
 
 
@@ -512,6 +663,12 @@ define([], function() {
      * Generates a random integer between min and max, inclusive.
      */
     squishy.randomInt = function(min, max) {
+        if (!squishy.isDefined(min)) {
+            min = -2147483647;
+            if (!squishy.isDefined(max)) {
+                max = 2147483647;
+            }
+        }
         return Math.ceil((Math.random() * (max-min+1))+min-1);
     };
 });

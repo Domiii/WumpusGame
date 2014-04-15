@@ -13,8 +13,8 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
         this.contextId = context.contextId;     // this id changes on restart
         this.script = script;
         
-        this.instanceId = squishy.strongRandomUInt32();       // this id is known by the script code
-        this.instanceKey = squishy.strongRandomUInt32();      // this is a private key, not to be exposed to the code running in the script context
+        this.instanceId = squishy.randomInt();       // this id is known by the script code
+        this.instanceKey = squishy.randomInt();      // this is a private key, not to be exposed to the code running in the script context
         this.running = true;
     };
     
@@ -34,6 +34,20 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
             return this.contextId == this.context.contextId && this.context.running;
         },
         
+         /**
+          * Send action command to guest.
+          */
+        postAction: function(args) {
+            this.postCommand("action", args);
+        },
+        
+        /**
+         * Send command message to guest.
+         */
+        postCommand: function(cmd, args) {
+            this.postMessage({command: cmd, args: args});
+        },
+        
         /**
          * Send "signed" message to worker context.
          */
@@ -43,17 +57,10 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
                 return;
             }
             
-            msg.instanceId = script.instanceId;
-            msg.instanceKey = script.instanceKey;
+            msg.instanceId = this.instanceId;
+            msg.instanceKey = this.instanceKey;
             
             this.context.postMessage(msg);
-        },
-        
-        /**
-         * Send "signed" command message to worker context.
-         */
-        postCommand: function(cmd, args) {
-            this.postMessage({command: cmd, args: args});
         },
         
         toString: function() {

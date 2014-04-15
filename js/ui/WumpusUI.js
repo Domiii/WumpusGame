@@ -369,7 +369,9 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
         this.scriptNotifications.clearNotifications();          // remove all pending notifications
         this.scriptEditor.getSession().clearAnnotations();
         var code = this.scriptEditor.getSession().getValue().toString();
-        this.game.scriptContext.runUserCode(code);
+        
+        // TODO: Proper script (i.e. rudimentary asset) management structure. The UI should not decide on file names etc.
+        this.game.scriptContext.runUserCode(code, "_userscript_912313_");
     };
     
     return wumpusGame;

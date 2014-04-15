@@ -21,7 +21,7 @@ squishy.getGlobalContext = function() {
         return window;
     }
     else if (typeof(self) !== "undefined") {
-        // Web Worker & other APIs
+        // Web Worker & some other APIs
         return self;
     }
     else {
