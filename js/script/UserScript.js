@@ -93,11 +93,7 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
          * Add "code id" for debugging purposes.
          */
         getCodeString : function() {
-            var code = this.codeString;
-            if (this.name) {
-                code += "\n//@ sourceURL=" + this.name;
-            }
-            return code;
+            return squishy.nameCode(this.codeString, this.name);
         },
         
         toString: function() {

@@ -131,11 +131,13 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                 ui.scriptNotifications.warning("Script was cancelled.", "WARNING", true);
             });
             
-            ui.game.scriptContext.events.scriptError.addListener(function(message, stacktrace) {
+            
+            // TODO: Need proper script manager to for meaningful error messages and error navigation
+            ui.game.scriptContext.events.scriptError.addListener(function(scriptInstance, message, stacktrace) {
                 // display notification
                 var frame = stacktrace[0];
                 var info;
-                console.log(frame.functionName);
+                
                 if (frame) {
                     if (ui.scriptEditor) {
                         // focus on line

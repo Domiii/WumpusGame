@@ -314,7 +314,33 @@ define([], function() {
     
     
     // ##############################################################################################################
-    // Proper toString function
+    // Proper toString & code-string management functions
+    
+    /** 
+     * Annotates a string of code, so that the stacktrace contains a meaningful filename when eval'ed.
+     * Make sure that name has the format of an URL (must not contain whitespace, etc...).
+     *
+     * @see http://blog.getfirebug.com/2009/08/11/give-your-eval-a-name-with-sourceurl/
+     */
+    squishy.nameCode = function(codeString, name) {
+        var code = codeString;
+        if (name) {
+            code += "\n//@ sourceURL=" + name;
+        }
+        return code;
+    };
+    
+    
+    /**
+     * Converts the given object to a string that can be eval'ed to return its original value.
+     * Will probably not work properly on objects of custom type (at the very least, it's constructor will not be executed).
+     */
+    squishy.objToEvalable = function(obj) {
+        // since this builds the string of an rvalue, we must wrap it in "()"
+        // this makes sure, it won't interpreted as a block of code
+        // see: http://stackoverflow.com/questions/23092966/eval-wont-work-on-objects-that-contain-functions
+        return "(" + squishy.objToString(obj) + ")";
+    };
     
     /**
       * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.

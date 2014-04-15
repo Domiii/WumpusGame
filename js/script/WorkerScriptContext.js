@@ -223,8 +223,8 @@ define(["squishy", "./UserScript"], function(squishy) {
                     this.onScriptFinished(scriptInstance);
                     break;
                 case "error_eval":
+                    // TODO: Get an idea of how the error came about and do not run erroneous scripts again before restart, in order to avoid evil infinite loops and error spam
                     this.events.scriptError.notify(scriptInstance, args.message, args.stacktrace);
-                    this.stopScript(scriptInstance);
                     break;
                     
                 // custom messages
@@ -256,10 +256,13 @@ define(["squishy", "./UserScript"], function(squishy) {
          * Initializes guest environment.
          */
         initializeGuest: function(baseUrl) {
-            //initArgs.workerId: this.workerId;
+            // TODO: Ensure that the required globals exist
+            
+            squishy.assert(this.guestGlobals, "setGuestGlobals must be called on ScriptContext, prior to initialization.");
+            
             var initArgs = {
                 baseUrl: baseUrl,
-                guestGlobals: squishy.objToString(this.guestGlobals)
+                guestGlobals: squishy.nameCode(squishy.objToEvalable(this.guestGlobals), "initGuestGlobals")
             };
             
             this.postMessage({command: "init", args: initArgs});    // start worker

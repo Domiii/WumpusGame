@@ -47,19 +47,29 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
         
             // create event handlers
             var eventIds = Object.keys(wumpusGame.PlayerEvent.AllNames);        // the keys of the event names are the event ids
-            var getEventHandlerNameById = getEventHandlerNameById;
             self.events = createGlobalEvents(eventIds, getEventHandlerNameById);
             
             // signal guest context that we are ready
             onInitDone();
         },
         
-        onAction: function(instanceKey, args) {
-            // we are currently not sending custom actions to the client
+        /**
+         * These are extra message handlers to implement a complete game protocol on the guest side.
+         */
+        commandHandlers: {
+            /**
+             * This function is called to signal the result of an action.
+             */
+            actionReply: function(instanceKey, args) {
+                
+            }
         },
         
         /**
          * These variables are just exposed to the guest's global context for use in user script code.
+         * These are mostly aimed at sending messages (or commands or actions) to avoid users having to send those themselves.
+         *
+         * TODO: Create a reliable structure to check when, how and why user actions fail, and inform the guest and/or the user (depending on context).
          */
         globals: {
             /**
@@ -97,7 +107,7 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
              * Calls player event handler.
              */
             onPlayerEvent: function(event, args) {
-                events[event]();
+                events[event](args);
             },
             
             /**
@@ -109,30 +119,32 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
             }
         }
     };
-    
-    // TODO: Objects containing functions are not allowed in strict mode eval. Need to change the stringification procedure.
-    
-    var x = eval(squishy.objToString(guestGlobals));
-    console.log(x);
 
     
     // ################################################################################################################################################################
     // GameScriptContext class (inherits from WorkerScriptContext)
     
+    /**
+     * 
+     */
     wumpusGame.GameScriptContext = squishy.extend(WorkerScriptContext,
         /**
          * Creates a new GameScriptContext.
          * @constructor
          */
         function (game, scriptConfig) {
-            this._base(scriptConfig);
+            this._base(scriptConfig);       // call base constructor
         
+            // assign game
+            squishy.assert(game, "game was not defined");
             this.game = game;
             
             // register player event callback
             var workerListenerCode = function(event, args) {
                 onPlayerEvent(event, args);
             };
+            
+            // TODO: Implement proper state management and more meaningful events
             
             // add listener to all relevant events, and send the events to the guest
             game.events.playerEvent.addListener(function(player, event, args) {
@@ -151,10 +163,10 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
              * Is called when the user script sends an action packet.
              * Make sure that this is interpreted securely. The user might cheat.
              */
-            onAction: function(args) {
+            onAction: function(action) {
                 // action to be performed by agent
                 var player = this.game.player;
-                player.performActionDelayed(args);
+                player.performActionDelayed(action);
             }
         }   
     );

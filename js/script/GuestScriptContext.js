@@ -14,73 +14,76 @@
 var global = this;
 
 /**
+ * Only allow these globals.
+ * All other globals are potentially harmful or not portable between run-time environments.
+ */
+self.whiteList = {
+    "self": 1,
+    "postMessage": 1,
+    "global": 1,
+    "whiteList": 1,
+    "eval": 1,
+    "Array": 1,
+    "Boolean": 1,
+    "Date": 1,
+    "Function": 1,
+    "Number" : 1,
+    "Object": 1,
+    "RegExp": 1,
+    "String": 1,
+    "Error": 1,
+    "EvalError": 1,
+    "RangeError": 1,
+    "ReferenceError": 1,
+    "SyntaxError": 1,
+    "TypeError": 1,
+    "URIError": 1,
+    "decodeURI": 1,
+    "decodeURIComponent": 1,
+    "encodeURI": 1,
+    "encodeURIComponent": 1,
+    "isFinite": 1,
+    "isNaN": 1,
+    "parseFloat": 1,
+    "parseInt": 1,
+    "Infinity": 1,
+    "JSON": 1,
+    "Math": 1,
+    "NaN": 1,
+    "undefined": 1,
+    
+    "Intl": 1,
+    "console": 1,
+    "setTimeout": 1,
+    
+    // globals from utility libraries
+    "printStackTrace": 1,
+    "require": 1,                   // require is not configurable, but luckily its harmless without importScripts
+    "define": 1,                    // require is not configurable, but luckily its harmless without importScripts
+    "requirejs": 1,                 // require is not configurable, but luckily its harmless without importScripts
+    
+    // helper & static context globals
+    "currentInstanceId": 1,
+    "postAction": 1,
+    "postCommand": 1,
+    "postInstanceMessage": 1,
+    "lockDown": 1,                 // lockDown will be set to null explicitely to check for execution
+    "runScript": 1,                // glorified eval
+    "exposeGlobals": 1,
+    "createGlobalEvents": 1,
+    
+    // user-given globals
+    "initScriptContext": 1,        // initialize context for interacting with the host
+    "onInitializationFinished": 1 // post-lockDown initialization
+};
+    
+/**
  * Lock down the context and disallow everything that is a potential security risk.
  *
  * @param {Array.<String>} ... Additional whitelist objects, imported from libraries.
  * @see http://stackoverflow.com/questions/10653809/making-webworkers-a-safe-environment
  */
 self.lockDown = function(additionalWhiteListSymbols) {
-    /**
-     * Only allow these globals.
-     * All other globals are potentially harmful or not portable between run-time environments.
-     */
-    var whiteList = {
-        "self": 1,
-        "postMessage": 1,
-        "global": 1,
-        "whiteList": 1,
-        "eval": 1,
-        "Array": 1,
-        "Boolean": 1,
-        "Date": 1,
-        "Function": 1,
-        "Number" : 1,
-        "Object": 1,
-        "RegExp": 1,
-        "String": 1,
-        "Error": 1,
-        "EvalError": 1,
-        "RangeError": 1,
-        "ReferenceError": 1,
-        "SyntaxError": 1,
-        "TypeError": 1,
-        "URIError": 1,
-        "decodeURI": 1,
-        "decodeURIComponent": 1,
-        "encodeURI": 1,
-        "encodeURIComponent": 1,
-        "isFinite": 1,
-        "isNaN": 1,
-        "parseFloat": 1,
-        "parseInt": 1,
-        "Infinity": 1,
-        "JSON": 1,
-        "Math": 1,
-        "NaN": 1,
-        "undefined": 1,
-        
-        "Intl": 1,
-        "console": 1,
-        "setTimeout": 1,
-        
-        // globals from utility libraries
-        "printStackTrace": 1,
-        "require": 1,                   // require is not configurable, but luckily its harmless without importScripts
-        "define": 1,                    // require is not configurable, but luckily its harmless without importScripts
-        "requirejs": 1,                 // require is not configurable, but luckily its harmless without importScripts
-        
-        // helper & static context globals
-        "currentInstanceId": 1,
-        "postAction": 1,
-        "postCommand": 1,
-        "postInstanceMessage": 1,
-        "lockDown": 1,                 // lockDown will be set to null explicitely to check for execution
-        "runScript": 1,                // glorified eval
-        "initScriptContext": 1,        // initialize context for interacting with the host
-        "onInitializationFinished": 1, // post-lockDown initialization
-        "onAction": 1, // post-lockDown initialization
-    };
-    
     // add external libraries to safe list
     for (var i = 0; i < additionalWhiteListSymbols.length; ++i) {
         var arg = additionalWhiteListSymbols[i];
@@ -264,7 +267,6 @@ Object.defineProperty(global, "createGlobalEvents", {
         // create global getter which looks up the event handler in the events map
         var createEventHandler = function(eventId, eventHandlerName) {
             Object.defineProperty(self, eventHandlerName, {
-                writable: true,
                 configurable: true,
                 get: function() {
                     return events[eventId];
@@ -278,7 +280,7 @@ Object.defineProperty(global, "createGlobalEvents", {
         // create an event handler for every event
         for (var i = 0; i < eventIds.length; ++i) {
             var eventId = eventIds[i];
-            var eventHandlerName = getEventHandlerNameById(eventName);
+            var eventHandlerName = getEventHandlerNameById(eventId);
             createEventHandler(eventId, eventHandlerName);
             
             // add event handler stub to event map
@@ -296,10 +298,19 @@ Object.defineProperty(global, "exposeGlobals", {
     configurable: false,
     enumrable: false,
     value: function(globals) {            
-        // expose context-specific globals
+        // expose context-specific globals & white-list them, too
         for (var key in globals) {
             if (globals.hasOwnProperty(key)) {
-                self[key] = globals[key];
+                // add global
+                Object.defineProperty(global, key, {
+                    writable: false,
+                    configurable: false,
+                    enumrable: false,
+                    value: globals[key]
+                });
+                
+                // make sure, lockDown won't touch it
+                whiteList[key] = 1;
             }
         }
     }
@@ -336,10 +347,10 @@ Object.defineProperty(global, "exposeGlobals", {
                 
                 // initialize custom globals
                 var guestGlobals = runScript(args.guestGlobals);
-                var initScriptContext = guestGlobals.initScriptContext;
-                var onInitializationFinished = guestGlobals.onInitializationFinished;
-                var onAction = guestGlobals.onAction;
-                var globals = guestGlobals.globals;
+                var initScriptContext = guestGlobals.initScriptContext || function() {};
+                var onInitializationFinished = guestGlobals.onInitializationFinished || function() {};
+                var globals = guestGlobals.globals || {};
+                local.commandHandlers = guestGlobals.commandHandlers || {};
                 
                 /**
                  * Simulator-specific initialization of the Worker context.
@@ -361,28 +372,19 @@ Object.defineProperty(global, "exposeGlobals", {
                     enumrable: false,
                     value: onInitializationFinished
                 });
-
-                /**
-                 * This code is called whenever the host sends a custom "action" command.
-                 */
-                Object.defineProperty(global, "onAction",  {
-                    writable: false,
-                    configurable: false,
-                    enumrable: false,
-                    value: onAction
-                });
+                
+                // expose globals
+                exposeGlobals(globals);
                 
                 // ScriptContext-specific initialization code
                 initScriptContext(baseUrl, function() {
                     // lock down the context and make it secure
                     if (lockDown) {
                         local.unsecureGlobal = lockDown(arguments);
-                        local = null;        // apparently, copying some globals into another object and calling them from there is against the rules
+                        local.unsecureGlobal = null;        // apparently, copying some globals into another object and calling them from there is against the rules
                 
                         // ScriptContext-specific second pass of initialization (post lockDown initialization)
                         onInitializationFinished(function() {
-                            // expose globals
-                            exposeGlobals(globals);
                             // this code is called after the second initialization pass has finished
                             postCommand("ready");
                         });
@@ -397,13 +399,16 @@ Object.defineProperty(global, "exposeGlobals", {
                 runScript(args.code);                   // run script
                 postCommand("stop", instanceKey);      // signal host that script has finished
                 break;
-            case "action":
-                // custom protocol
-                onAction(instanceKey, args);
-                break;
             default:
-                // developer error
-                console.warn("invalid command received by worker: " + cmd);
+                // check for custom command handler
+                var handler = local.commandHandlers[cmd];
+                if (handler) {
+                    handler(args);
+                }
+                else {
+                    // developer error
+                    console.warn("invalid command received by worker: " + cmd);
+                }
                 break;
         };
     };
