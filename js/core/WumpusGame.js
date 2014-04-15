@@ -3,7 +3,7 @@
  */
 "use strict";
 
-define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./WorkerScriptContext", "../user/DefaultWorldGenerator"], function(wumpusGame, Tile, Grid, Player, WorkerScriptContext) {
+define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "../script/WorkerScriptContext", "../user/DefaultWorldGenerator"], function(wumpusGame, Tile, Grid, Player, WorkerScriptContext) {
      /**
       * Constructs a new game.
       * @constructor 

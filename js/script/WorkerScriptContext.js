@@ -97,7 +97,7 @@ define(["squishy", "./UserScript"], function(squishy) {
             // Node
             baseURL = __dirname + "/../..";
         }
-        this.worker = new Worker("js/core/WorkerScriptCode.js");
+        this.worker = new Worker("js/script/WorkerScriptCode.js");
         this.worker.onerror = function(event) {
             throw new Error("Worker failed: " + event.message + " (" + event.filename + ":" + event.lineno + ")");
         };
@@ -105,6 +105,8 @@ define(["squishy", "./UserScript"], function(squishy) {
             var data = event.data;
             var cmd = data.command;
             var args = data.args;
+            
+            console.log(cmd + self.scriptRunning);
             
             // messages that are independent of user-scripts
             switch (cmd) {
@@ -131,13 +133,13 @@ define(["squishy", "./UserScript"], function(squishy) {
                     player.performActionDelayed(args);
                     break;
                 case "error_eval":
-                console.log("error_eval");
                     self.events.scriptError.notify(args.message, args.stacktrace);
                     self.stopScript(true);
                     break;
             }
         };})(this);
         
+        this.scriptRunning = 0;
         this.running = true;
         this.commandQueue = [];
         
@@ -166,7 +168,7 @@ define(["squishy", "./UserScript"], function(squishy) {
     WorkerScriptContext.prototype.stopScript = function(dontNotify) {
         if (this.scriptRunning) {
             clearTimeout(this.scriptTimer);
-            this.scriptRunning = null;
+            --this.scriptRunning;
             this.scriptTimer = null;
             if (!dontNotify) 
                 this.events.scriptCancelled.notify();
@@ -226,13 +228,14 @@ define(["squishy", "./UserScript"], function(squishy) {
             this.events.scriptStarted.notify();
             
             // start timer to make sure, the user script won't run forever
-            this.scriptRunning = true;
+            ++this.scriptRunning;
             this.scriptTimer = setTimeout((function(self) { return function() { if (self.scriptRunning) { self.onScriptTimeout(); } } })(this), this.defaultScriptTimeout);
         
             var code = script.getCodeString();
             var cmd = {
                 command: "run",
                 args: { 
+                // TODO: Add id to script?
                     code: code,
                     name: script.name
                 }

@@ -373,7 +373,6 @@ Object.defineProperty(global, "scriptGlobals",  {
                 break;
             case "run":
                 if (lockDown) return;        // the context has not been locked down yet. That also implies that initialization has not finished yet.
-                
                 // run the actual script outside the context of the initializer
                 //local.unsecureGlobal.setTimeout(function() {
                     runScript(args.code);
