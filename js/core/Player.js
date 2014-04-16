@@ -54,7 +54,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
      /**
       * Moves the player to the given tile.
       */
-    wumpusGame.Player.prototype.movePlayer = function(newPos) {
+    wumpusGame.Player.prototype.movePlayer = function(newPos, dontNotify) {
         var lastTile = this.getTile();
         var newTile = this.game.grid.getTile(newPos[0], newPos[1]);
         var firstVisit = !newTile.visited;
@@ -73,7 +73,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         newTile.notifyTileChanged();
         
         // apply game rules
-        this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Move, {pos: squishy.clone(this.position, true), firstVisit: firstVisit});
+        this.game.triggerPlayerEvent(this, wumpusGame.PlayerEvent.Move, {firstVisit: firstVisit});
     };
     
 
@@ -95,7 +95,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.getTile().notifyTileChanged();
         
         // apply game rules
-        this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Turn, this.direction);
+        this.game.triggerPlayerEvent(this, wumpusGame.PlayerEvent.Turn);
     };
 
     /**
@@ -205,7 +205,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 break;
             case wumpusGame.PlayerAction.Exit:
                 if (this.getTile().hasObject(wumpusGame.ObjectTypes.Entrance)) {
-                    this.game.onPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
+                    this.game.triggerPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
                 }
                 else {
                     actionHappened = false;

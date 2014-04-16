@@ -11,11 +11,13 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
     
     /** 
      * Define globals that are sent to and only executed in the guest script context.
+     * IMPORTANT: All these objects and code therein is run in the guest context.
      */
     var guestGlobals = {
         /**        
          * This code is called before before the context is secured.
          * At this point, we can still load external resources and execute all kinds of potentially insecure functions inside the guest context.
+         * Do not run user code in this function.
          *
          * @param {Function} onInitDone Is called after initialization to signal the guest that this code has done its duty.
          */
@@ -39,15 +41,17 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
         },
         
         /**
-         * This code is called after the global context has been secured, so we can go ahead and add things that we like.
+         * This code is called after the global context has been secured, so we can go ahead and add things that we like to the guest context.
+         * Do not run user code in this function.
          */
         onInitializationFinished: function(onInitDone) {
-            // expose everything from the wumpusGame namespace
+            // expose everything from the wumpusGame and squishy namespaces
             exposeGlobals(wumpusGame);
+            exposeGlobals(squishy);
         
             // create event handlers
-            var eventIds = Object.keys(wumpusGame.PlayerEvent.AllNames);        // the keys of the event names are the event ids
-            self.events = createGlobalEvents(eventIds, getEventHandlerNameById);
+            var eventIds = wumpusGame.PlayerEvent.getValues();
+            self.eventHandlers = createGlobalEvents(eventIds, getEventHandlerNameById);
             
             // signal guest context that we are ready
             onInitDone();
@@ -55,13 +59,21 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
         
         /**
          * These are extra message handlers to implement a complete game protocol on the guest side.
+         * You can run user code in this function.
+         * Each commandHandler has one parameter: args (the arguments given in the postCommand call)
+         * It also has an optional parameter: postPrivilegedCommand, which is a function to send privileged commands from the guest back to the host.
+         * This parameter will only be available if the commandHandler is registered as an object with two properties: handler (the actual handler function) and isPrivileged (must be set to true)
          */
         commandHandlers: {
             /**
-             * This function is called to signal the result of an action.
+             * This function is called to signal a new set of player events.
              */
-            actionReply: function(instanceKey, args) {
-                
+            triggerPlayerEvents: function(events) {
+                events.forEach(function (event) {
+                    var eventId = event.eventId;
+                    var args = event.args;
+                    eventHandlers[eventId](args);
+                });
             }
         },
         
@@ -96,6 +108,7 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
             turnCounterClockwise: function() {
                 postAction(wumpusGame.PlayerAction.TurnCounterClockwise);
             },
+            
             /**
              * Escape through an entrance.
              */
@@ -104,17 +117,10 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
             },
             
             /**
-             * Calls player event handler.
-             */
-            onPlayerEvent: function(event, args) {
-                events[event](args);
-            },
-            
-            /**
              * Returns the name of the event of the given id.
              */
             getEventHandlerNameById: function(eventId) {
-                var eventName = wumpusGame.PlayerEvent.AllNames[eventId];
+                var eventName = wumpusGame.PlayerEvent.toString(eventId);
                 return "on" + eventName;
             }
         }
@@ -125,7 +131,7 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
     // GameScriptContext class (inherits from WorkerScriptContext)
     
     /**
-     * 
+     * IMPORTANT: All this code is run in the host context.
      */
     wumpusGame.GameScriptContext = squishy.extend(WorkerScriptContext,
         /**
@@ -137,36 +143,80 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
         
             // assign game
             squishy.assert(game, "game was not defined");
+                
             this.game = game;
             
-            // register player event callback
-            var workerListenerCode = function(event, args) {
-                onPlayerEvent(event, args);
-            };
+            // register game event listeners:
             
-            // TODO: Implement proper state management and more meaningful events
-            
-            // add listener to all relevant events, and send the events to the guest
-            game.events.playerEvent.addListener(function(player, event, args) {
-                var argsString = squishy.objToString(args);
-                var code = "(" + workerListenerCode + ")(" + event + ", " + argsString + ");";
-                this.runUserCode(code, "__listenercode__playerEvent");
+            // register game restart event listener
+            this.game.events.restart.addListener(function() {
+                this.resetContext();
             }.bind(this));
+
+            // register player event listener
+            this.game.events.playerEvent.addListener(function(player, events) {
+                // remember all events
+                this.eventLog.push(events);
+                
+                // send to remote side
+                this.postCommand("triggerPlayerEvents", events);
+            }.bind(this));
+            
+            
+            // register guest response event listeners:
+            this.setGuestResponseHandler("action", this.onAction.bind(this), true);
             
             // tell the worker to send these variables to the GuestScriptContext during initialization and add them to the guest's global object.
             this.setGuestGlobals(guestGlobals);
+            
+            this.resetContext();
         },
         
         // define methods
         {
             /**
-             * Is called when the user script sends an action packet.
+             * Called when game restarts.
+             */
+            resetContext: function() {
+                // reset eventlog
+                this.eventLog = [];
+                this.eventLogIndex = 0;
+                this.scriptRan = false;
+            },
+            
+            /**
+             * Called after initialization finished, and guest context is ready.
+             * Note that this is called in the host context.
+             */
+            onGuestReady: function() {
+            },
+            
+            /**
+             * Called when the user script sends an action.
              * Make sure that this is interpreted securely. The user might cheat.
              */
             onAction: function(action) {
                 // action to be performed by agent
                 var player = this.game.player;
                 player.performActionDelayed(action);
+            },
+            
+            /**
+             * Restarts the game and runs the given user script
+             */
+            startUserScript: function(code, name) {
+                // restart game and clean slate the entire guest context to avoid compatability issues between two script runs...
+                this.game.restart();
+                
+                // run the user script (which will (re-)register event handlers)
+                this.runUserCode(code, name);
+                
+                // play log of events that happened during initialization
+                for (; this.eventLogIndex < this.eventLog.length; ++this.eventLogIndex) {
+                    // send to remote side
+                    var events = this.eventLog[this.eventLogIndex];
+                    this.postCommand("triggerPlayerEvents", events);
+                }
             }
         }   
     );

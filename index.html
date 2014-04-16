@@ -43,19 +43,25 @@
     turnCounterClockwise();
     
     moveForward();
-    moveForward();
-    turnCounterClockwise();
-    
-    moveForward();
-    moveForward();
-    turnCounterClockwise();
-    
-    moveForward();
-    moveForward();
+
     exit();
 }
 
-x();
+onGameStart = function(args) {
+    var playerX = args.playerX;
+    var playerY = args.playerY;
+    var playerDirection = args.playerDirection;
+    var score = args.score;
+    var ammo = args.ammo;
+    var visitedTiles = args.visitedTiles;
+    visitedTiles.forEach(function(tile) {
+        var tileX = tile.tileX;
+        var tileY = tile.tileY;
+        var tileContent = tile.tileContent;
+        
+        // place code for each visited tile here
+    });
+};
 
 onMove = function(args) {
     var firstVisit = args.firstVisit;

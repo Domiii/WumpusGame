@@ -190,7 +190,7 @@ define([], function() {
 
     
     // ##############################################################################################################
-    // OOP
+    // Add some helper methods for better OOP and related language features
 
     /**
      * Javascript-style inheritance.
@@ -243,6 +243,41 @@ define([], function() {
      */
     squishy.abstractMethod = function() {
         return new squishy.AbstractMethodType();
+    };
+    
+    /**
+     * 
+     */
+    squishy.makeEnum = function(obj) {
+        var nameTable = {};
+        var values = [];
+        
+        // iterate over all enum values and take inventory of their names
+        Object.getOwnPropertyNames(obj).forEach(function(name) {
+            var value = obj[name];
+            if (value instanceof Function) return;
+            nameTable[value] = name;
+            values.push(value);
+        });
+        
+        // add nameTable and values to enum
+        obj.nameTable = nameTable;
+        obj.values = values;
+        
+        // add a method to obtain the nameTable
+        obj.getNames = function() {
+            return obj.nameTable;
+        };
+        
+        // add a method to obtain all values (excluding functions)
+        obj.getValues = function() {
+            return obj.values;
+        };
+        
+        // add a toString method
+        obj.toString = function(enumValue) {
+            return obj.nameTable[enumValue];
+        };
     };
     
     // var testOOP() {
@@ -339,17 +374,21 @@ define([], function() {
         // since this builds the string of an rvalue, we must wrap it in "()"
         // this makes sure, it won't interpreted as a block of code
         // see: http://stackoverflow.com/questions/23092966/eval-wont-work-on-objects-that-contain-functions
-        return "(" + squishy.objToString(obj) + ")";
+        return "(" + squishy.toString(obj) + ")";
     };
     
     /**
       * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.
       */
-    squishy.objToString = function(obj, layer, indent) {
+    squishy.toString = function(obj, layer, indent) {
         // TODO: Consider using proper stringbuilder for better performance
         var str = "";
         var isArray = obj instanceof Array;
         var isObject = typeof(obj) === "object";
+        
+        if (layer > 20)  {
+            throw new Error("Possible cyclic object nesting in squishy.toString().");
+        }
         
         layer = layer || 0;
         
@@ -361,9 +400,17 @@ define([], function() {
             }
         }
         
-        // for (var propName in obj) {
-            // if (!obj.hasOwnProperty(propName)) continue;
-        if (isArray || isObject) {
+        // check object type (stupidly complicated JS type checking...)
+        if (obj == null) {
+            str += "null";
+        }
+        else if (!squishy.isDefined(obj)) {
+            str += "undefined";
+        }
+        else if (typeof obj === "string") {
+            str += "\"" + obj + "\"";
+        }
+        else if (isArray || isObject) {
             var outerIndent = indent;
             str += (isArray ? "[" : "{") + "\n";
             indent += "    ";
@@ -371,7 +418,8 @@ define([], function() {
             // iterate over all properties of array or object
             var iterator = function(propName) {
                 var prop = obj[propName];
-                var propStr = squishy.objToString(prop, layer+1, indent);
+                
+                var propStr = squishy.toString(prop, layer+1, indent);
                 
                 if (isArray) {
                     str += indent + propStr + ",\n";
@@ -393,8 +441,8 @@ define([], function() {
             }
             
             // remove dangling comma
-            if (str.trim().endsWith(",")) {
-                str = str.substring(0, str.length-1);
+            if (str.endsWith(",\n")) {
+                str = str.substring(0, str.length-2);
             }
 
             // close array or object definition
@@ -402,19 +450,7 @@ define([], function() {
             str += isArray ? "]" : "}";
         }
         else {
-            // obj is neither object nor array
-            if (obj == null) {
-                str += "null";
-            }
-            else if (!squishy.isDefined(obj)) {
-                str += "undefined";
-            }
-            else if (obj instanceof String) {
-                str += "\"" + obj + "\"";
-            }
-            else {
-                str += obj.toString();
-            }
+            str += obj.toString();
         }
         return str;
     };
@@ -513,7 +549,7 @@ define([], function() {
             }
         }
         catch (excep) {
-            console.log("Could not create array of size: " + size);
+            console.error("Could not create array of size: " + size);
             throw excep;
         }
         return arr;
@@ -647,8 +683,8 @@ define([], function() {
      * Creates a new event, representing a list of event handler callbacks.
      */
     squishy.Event = function() {
-        var Event = function(self) {
-            this.self = self;
+        var Event = function(_this) {
+            this._this = _this;
             this.listeners = [];
         };
         

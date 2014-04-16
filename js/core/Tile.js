@@ -118,5 +118,39 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         this.grid.game.events.tileChanged.notify(this);
     };
     
+    /**
+     * Renders this tile's static contents to a string.
+     */
+    wumpusGame.Tile.prototype.getContentString = function() {
+        var text = "";
+        
+        if (this.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
+            text += "W ";
+        }
+        if (this.hasObject(wumpusGame.ObjectTypes.Gold)) {
+            text += "G ";
+        }
+        if (this.hasObject(wumpusGame.ObjectTypes.Pit)) {
+            text += "P ";
+        }
+        if (this.hasObject(wumpusGame.ObjectTypes.Bats)) {
+            text += "B ";
+        }
+        if (this.hasObject(wumpusGame.ObjectTypes.Entrance)) {
+            text += "E ";
+        }
+        
+        if (this.hasTileFlag(wumpusGame.TileFlags.Stench)) {
+            text += "s ";
+        }
+        if (this.hasTileFlag(wumpusGame.TileFlags.Breeze)) {
+            text += "b ";
+        }
+        if (this.hasTileFlag(wumpusGame.TileFlags.FlappingNoise)) {
+            text += "f ";
+        }
+        return text;
+    };
+    
     return wumpusGame.Tile;
 });

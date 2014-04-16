@@ -32,7 +32,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
         this.scriptContext = new wumpusGame.GameScriptContext(this, config.scriptConfig);
         
         // register events
-        this.scriptContext.events.scriptError.addListener(function (scriptInstance, message, stacktrace) {
+        this.scriptContext.events.scriptError.addListener(function (message, stacktrace) {
             // TODO: We must find a general way to avoid repeating script errors.
             //   This handler code must under no circumstances raise another error (else, we might get an infinite loop).
             this.stopGame();
@@ -55,12 +55,15 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
          */
         stopGame: function() {
             this.player.stopPlayer();
+            this.running = false;
         },
 
          /**
           * Clears all tiles.
           */
-        clearGame: function() {
+        reset: function() {
+            this.stopGame();
+            
             this.grid.foreachTile(function(tile) {
                 tile.clearTile();
             });
@@ -77,6 +80,9 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
           * Clears (if necessary), initializes and starts the game.
           */
         restart: function() {
+            // clear the whole thing
+            this.reset();
+        
             // gen world
             this.worldGenerator.genWorld(this);
             
@@ -92,9 +98,15 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
             this.player.initializePlayer(this.initialPlayerState);
             this.player.getTile().setObject(wumpusGame.ObjectTypes.Entrance);
             
+            
+            // initialization has fininshed
+            this.running = true;
+            
             // notify all listeners
             this.events.restart.notify();
-            return true;
+            
+            // send event
+            this.triggerPlayerEvent(this.player, wumpusGame.PlayerEvent.GameStart);
         },
         
         /**
@@ -109,38 +121,95 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
         /**
          * Enforce game rules
          */
-        onPlayerEvent: function(player, event, args, playback) {
+        triggerPlayerEvent: function(player, eventId, args, playback) {
+            if (!this.running) return;
+            
             var tile = player.getTile();
             
-            switch (event) {
+            // check whether this is the first event in a chain, to keep the correct order of events
+            var eventChain = this.eventChain;
+            var eventChainStarted = !eventChain;
+            
+            if (eventChainStarted) {
+                // create new eventChain object
+                eventChain = this.eventChain = [];
+                this.eventPlayback = playback;
+            }
+            else {
+                playback = playback || this.eventPlayback;
+            }
+            
+            // remember event
+            var event = {eventId: eventId};
+            eventChain.push(event);
+        
+            // handle event
+            switch (eventId) {
+                case wumpusGame.PlayerEvent.GameStart:
+                    // produce array of all visited tiles
+                    var visitedTiles = [];
+                    this.grid.foreachTile(function(tile) {
+                        if (tile.visited) {
+                            visitedTiles.push({
+                                tileX: tile.tilePosition[0],
+                                tileY: tile.tilePosition[1],
+                                tileContent: tile.getContentString()
+                            });
+                        }
+                    });
+                    
+                    // compile event arguments
+                    args = {
+                        playerX: this.player.position[0],
+                        playerY: this.player.position[1],
+                        playerDirection: this.player.direction,
+                        score: this.player.score,
+                        ammo: this.player.ammo,
+                        visitedTiles: visitedTiles
+                    };
+                    break;
                 case wumpusGame.PlayerEvent.Move:
                     var firstVisit = args.firstVisit;
                     
+                    args = {
+                        playerX: this.player.position[0],
+                        playerY: this.player.position[1],
+                        newScore: player.score + this.pointsMove,
+                        firstVisit: firstVisit,
+                        tileContent: player.getTile().getContentString()
+                    };
+                        
                     // apply move penalty
-                    player.setScore(player.score + this.pointsMove);
+                    player.setScore(args.newScore);
                     
                     // check for object encounters
                     if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
-                        this.onPlayerEvent(player, wumpusGame.PlayerEvent.Teleport);
+                        this.triggerPlayerEvent(player, wumpusGame.PlayerEvent.Teleport);
                     }
                     else if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
-                        this.onPlayerEvent(player, wumpusGame.PlayerEvent.DeadPit);
+                        this.triggerPlayerEvent(player, wumpusGame.PlayerEvent.DeadPit);
                     }
                     else if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus) && this.wumpusAlive) {
                         // walked into the arms of a living Wumpus
-                        this.onPlayerEvent(player, wumpusGame.PlayerEvent.DeadWumpus);
+                        this.triggerPlayerEvent(player, wumpusGame.PlayerEvent.DeadWumpus);
                     }
-                    else if (tile.hasObject(wumpusGame.ObjectTypes.Gold) && firstVisit) {
+                    else if (tile.hasObject(wumpusGame.ObjectTypes.Gold) && args.firstVisit) {
                         // stumpled upon and picked up gold
-                        this.onPlayerEvent(player, wumpusGame.PlayerEvent.GrabGold);
+                        this.triggerPlayerEvent(player, wumpusGame.PlayerEvent.GrabGold);
                     }
                     break;
                 case wumpusGame.PlayerEvent.Turn:
+                    args = {
+                        playerDirection: this.player.direction
+                    };
                     break;
                 case wumpusGame.PlayerEvent.GrabGold:
                     // player found and picked up gold
                     tile.notifyTileChanged();
-                    player.setScore(player.score + this.pointsGold);
+                    args = {
+                        newScore: player.score + this.pointsGold
+                    };
+                    player.setScore(args.newScore);
                     break;
                 case wumpusGame.PlayerEvent.Teleport:
                     // bats teleport player to a random location
@@ -162,7 +231,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
                     this.setStatus(wumpusGame.GameStatus.Failed);
                     break;
                 case wumpusGame.PlayerEvent.DeadWumpus:
-                    // player walked onto the Wumpus (also a deadly experience)
+                    // player walked into the Wumpus (also a deadly experience)
                     this.setStatus(wumpusGame.GameStatus.Failed);
                     break;
                 case wumpusGame.PlayerEvent.Exit:
@@ -173,13 +242,23 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
                     throw new Error("Invalid player event: " + event);
             }
             
-            if (!playback) {
-                // add log entry
-                this.eventLog.push({event: event, args: args});
-            }
+            event.args = args;
             
-            // call listener callbacks
-            this.events.playerEvent.notify(player, event, args);
+            if (eventChainStarted) {
+                // this was the first event on the "stack of events", i.e. the order is now preserved
+                if (!playback) {
+                    // add log entry
+                    eventChain.forEach(function(evt) {
+                        this.eventLog.push(evt);
+                        //console.log(wumpusGame.PlayerEvent.toString(evt.eventId) + squishy.toString(event.args));
+                    }.bind(this));
+                    this.eventChain = null;
+                }
+            
+                // call listener callbacks
+                this.events.playerEvent.notify(player, eventChain);
+                
+            }
         }
     };
         

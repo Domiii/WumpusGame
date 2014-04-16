@@ -162,34 +162,7 @@ wumpusGame.createTileElement = function(gridUI, tile) {
         
         if (tile.visited || this.gridUI.gameUI.visibility == wumpusGame.WumpusUI.Visibility.All) {
             // render objects and object indicators
-            var text = "";
-            
-            if (tile.hasObject(wumpusGame.ObjectTypes.Wumpus)) {
-                text += "W ";
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Gold)) {
-                text += "G ";
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Pit)) {
-                text += "P ";
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Bats)) {
-                text += "B ";
-            }
-            if (tile.hasObject(wumpusGame.ObjectTypes.Entrance)) {
-                text += "E ";
-            }
-            
-            if (tile.hasTileFlag(wumpusGame.TileFlags.Stench)) {
-                text += "s ";
-            }
-            if (tile.hasTileFlag(wumpusGame.TileFlags.Breeze)) {
-                text += "b ";
-            }
-            if (tile.hasTileFlag(wumpusGame.TileFlags.FlappingNoise)) {
-                text += "f ";
-            }
-        
+            var text = tile.getContentString();
             var w = tileEl.innerWidth();
             var shortText = squishy.truncateText(text, "14px arial", w);
             this.textCont =  this.textCont || $(document.createElement("div"));

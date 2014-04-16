@@ -44,10 +44,17 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
         this.gameNotifications = new NotificationList({containerElement : this.gridUI});
         
         // setup listeners
-        (function(ui) {
+        (function(ui) {        
+            // load default user code
+            jQuery.get('js/user/DefaultUserCode.js', function(code) {
+                ui.scriptEditor.setValue(code, -1);
+            }).fail(function() {
+                console.warn("Failed to load user code: " + squishy.toString(arguments));
+            });
             
             // #####################################################
             // Game events
+            
             ui.game.events.tileChanged.addListener(function(tile) {
                 // update tile rendering
                 ui.gridUI.updateTileStyle(tile.tilePosition[0], tile.tilePosition[1]);
@@ -121,19 +128,20 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
             // #####################################################
             // Script events
             
-            ui.game.scriptContext.events.scriptTimeout.addListener(function() {
+            ui.game.scriptContext.events.commandTimeout.addListener(function(command) {
                 // script was cancelled due to timeout
-                ui.scriptNotifications.error("Script was terminated because it ran longer than " + ui.game.scriptContext.defaultScriptTimeout + " milliseconds.", "ERROR", true);
+                ui.scriptNotifications.error("Game stopped because it ran longer than " + ui.game.scriptContext.defaultScriptTimeout + " milliseconds.", "ERROR", true);
+                this.restart(); 
             });
             
-            ui.game.scriptContext.events.scriptCancelled.addListener(function() {
+            ui.game.scriptContext.events.commandCancelled.addListener(function(command) {
                 // script was cancelled, probably by user
                 ui.scriptNotifications.warning("Script was cancelled.", "WARNING", true);
             });
             
             
             // TODO: Need proper script manager to for meaningful error messages and error navigation
-            ui.game.scriptContext.events.scriptError.addListener(function(scriptInstance, message, stacktrace) {
+            ui.game.scriptContext.events.scriptError.addListener(function(message, stacktrace) {
                 // display notification
                 var frame = stacktrace[0];
                 var info;
@@ -363,17 +371,12 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
      * Runs the script that is currently present in the editor.
      */
     wumpusGame.WumpusUI.prototype.runUserScript = function() {
-        if (this.game.status !== wumpusGame.GameStatus.Playing) {
-            // reset game
-            this.game.restart();
-        }
-        
         this.scriptNotifications.clearNotifications();          // remove all pending notifications
         this.scriptEditor.getSession().clearAnnotations();
         var code = this.scriptEditor.getSession().getValue().toString();
         
         // TODO: Proper script (i.e. rudimentary asset) management structure. The UI should not decide on file names etc.
-        this.game.scriptContext.runUserCode(code, "_userscript_912313_");
+        this.game.scriptContext.startUserScript(code, "_userscript_912313_");
     };
     
     return wumpusGame;

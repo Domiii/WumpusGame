@@ -4,7 +4,7 @@
 
 "use strict";
 
-define(["squishy", "./UserScript"], function(squishy) {
+define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScript, UserCommand) {
     // ################################################################################################################################################################
     // static variables
     
@@ -27,15 +27,18 @@ define(["squishy", "./UserScript"], function(squishy) {
         this.defaultScriptTimeout = config.defaultScriptTimeout || 500;
         
         // reset stuff
-        this.scriptTimer = null;
+        this.timeoutTimer = null;
         this.events = {
-            scriptStarted: new squishy.Event(this),
-            scriptFinished: new squishy.Event(this),
-            scriptCancelled: new squishy.Event(this),
-            scriptTimeout: new squishy.Event(this),
+            commandStarted: new squishy.Event(this),
+            commandFinished: new squishy.Event(this),
+            commandCancelled: new squishy.Event(this),
+            commandTimeout: new squishy.Event(this),
             scriptError: new squishy.Event(this),
-            scriptInvalidMessage: new squishy.Event(this)      // args: message, scriptInstance
+            invalidGuestResponse: new squishy.Event(this)      // args: triggeringCommand, message
         }
+        
+        // guestResponseHandlers are called when the guest sends a custom response
+        this.guestResponseHandlers = {};
         
         // copy config into this context
         squishy.clone(config, false, this);
@@ -64,17 +67,6 @@ define(["squishy", "./UserScript"], function(squishy) {
         startWorker: function() {
             if (this.running) return;            // check if already running
             
-            // the worker initialization code
-            // var workerContext = WorkerScriptContext.createWorkerContext();
-            // var code = this.buildWorkerCode(workerContext.init, workerContext.globals);
-            // //console.log(code);
-
-            // // Obtain a blob URL reference to our virtual worker 'file'.
-            // var blob = new Blob([code], {type: 'text/javascript'});
-            // var blobURL = window.URL.createObjectURL(blob);
-            // this.worker = new Worker(blobURL);
-            
-            
             var baseUrl;
             if (squishy.getGlobalContext().document) {
                 // browser
@@ -94,11 +86,11 @@ define(["squishy", "./UserScript"], function(squishy) {
             
             this.worker.onmessage = this.onmessage.bind(this);
             
-            // setup state machine
+            // setup command tracking
             this.contextId = ++lastContextId;
-            this.runningScriptInstances = {};
             this.running = true;
-            this.commandQueue = [];
+            this.sentCommands = {};
+            this.callbackQueue = [];
             
             if (DEBUG) {
                 // keep track of all messages sent forth and back
@@ -110,16 +102,22 @@ define(["squishy", "./UserScript"], function(squishy) {
         },
         
          /**
-          * Terminates the worker. You will have to call startWorker again to run more scripts.
+          * Terminates the worker.
+          * You will have to call startWorker again to run more commands.
           */
         stopWorker: function() {
             if (!this.worker) return;
             
             var self = this;
-            Object.keys(this.runningScriptInstances).forEach(function(prop) {
-                if (self.runningScriptInstances.hasOwnProperty(prop)) {
-                    var scriptInstance = self.runningScriptInstances[prop];
-                    self.stopScript(scriptInstance, true);
+            Object.keys(this.sentCommands).forEach(function(prop) {
+                if (self.sentCommands.hasOwnProperty(prop)) {
+                    var cmd = self.sentCommands[prop];
+                    self.stopCommand(cmd, true);
+                    
+                    // stop timeout timer
+                    if (cmd.timeoutTimer) {
+                        clearTimeout(cmd.timeoutTimer);
+                    }
                 }
             });
             this.ready = false;
@@ -131,24 +129,61 @@ define(["squishy", "./UserScript"], function(squishy) {
         
         // ################################################################################################################################################################
         // Protocol implementation
+
+        /**
+         * Register a callback to be called when the guest sends a custom command.
+         * Every such guest message will be checked with checkPrivilegedAction, unless notPrivileged is set to true.
+         * IMPORTANT: If notPrivileged is set to true, the handler should have as few parameters as possible and MUST thorougly validate all arguments to prevent the following:
+         *      -> Cheating (allow the user to do things that it usually cannot).
+         *      -> Execution of potentially harmful code.
+         *      -> Unwanted modification of global state.
+         */
+        setGuestResponseHandler: function(name, handler, notPrivileged) {
+            handler.isPrivileged = !notPrivileged;
+            this.guestResponseHandlers[name] = handler;
+        },
         
         /**
          * Send command message to guest.
          */
-        postCommand: function(cmd, args) {
-            this.postMessage({command: cmd, args: args});
+        postCommand: function(commandOrcommandName, args, doesNotRequireReady) {
+            var cmd;
+            
+            // check function overloading: First parameter may be commandName or the actual command object
+            // Must use typeof, cannot use instanceof here (see http://stackoverflow.com/questions/203739/why-does-instanceof-return-false-for-some-literals)
+            if (typeof commandOrcommandName === "string") {
+                cmd = new UserCommand(this, commandOrcommandName, args);
+            }
+            else {
+                cmd = commandOrcommandName;
+            }
+            
+            if (!doesNotRequireReady && !this.ready) {
+                // queue message, and run it when guest is ready:
+                this.callbackQueue.push(function() { this.postCommand(cmd); }.bind(this));
+            }
+            else {
+                // notify listeners
+                this.events.commandStarted.notify(cmd);
+                
+                // add to list of active commands
+                this.sentCommands[cmd.getId()] = cmd;
+                
+                // send message to guest
+                this.postMessage(cmd.message, doesNotRequireReady);
+            }
         },
         
          /**
           * Send message to guest.
           */
         postMessage: function(msg) {
-            squishy.assert(this.worker, "Trying to postMessage while worker is not running.");
+            squishy.assert(this.worker, "Tried to call postMessage while worker is not running.");
             
+            // log message and send to guest
             if (DEBUG) {
                 this.protocolLog.push(msg);
             }
-            
             this.worker.postMessage(msg);
         },
         
@@ -156,108 +191,127 @@ define(["squishy", "./UserScript"], function(squishy) {
          * Called whenever a message is received by the host.
          */
         onmessage: function (event) {
-            var msg = event.data;
-            var instanceId = msg.instanceId;
-            var cmd = msg.command;
-            var args = msg.args;
+            var guestMsg = event.data;
+            var senderId = guestMsg.senderId;
+            var guestResponse = guestMsg.command;
+            var args = guestMsg.args;
             
             if (DEBUG) {
-                this.protocolLog.push(msg);
+                this.protocolLog.push(guestMsg);
             }
             
-            if (!cmd) return;
+            if (!guestResponse) return;
             
             // Script-independent WorkerScriptContext protocol
-            switch (cmd) {
+            switch (guestResponse) {
                 case "ready":
                     // worker finished initialization
                     this.ready = true;
-                    this.onReady();
+
+                    // call queued callbacks
+                    for (var i = 0; i < this.callbackQueue.length; ++i) {
+                        var callback = this.callbackQueue[i];
+                        callback();
+                    }
+                    this.callbackQueue = [];
+                    
+                    // signal possible listeners
+                    this.onGuestReady();
                     return;
             }
              
             // ignore user messages that were sent before termination and arrived after termination
             if (!this.running) return;
             
-            // Retrieve the script instance that sent this message.
-            var scriptInstance = this.runningScriptInstances[instanceId];
-            if (!scriptInstance || !scriptInstance.isRunning()) {
-                // The script that sent this message is gone (invalid user-sent message or a left-over message of a terminated script).
-                console.warn("Message received from invalid scriptInstance (" + instanceId + "): " + cmd + "; args: " + squishy.objToString(args));    // TODO: Localization
-                this.events.scriptInvalidMessage.notify(scriptInstance, msg);
+            // Retrieve the host command instance that triggered this message.
+            var triggeringCommand = this.sentCommands[senderId];
+            if (!triggeringCommand || !triggeringCommand.isActive()) {
+                // The command that caused this message to be sent is gone (invalid user-sent message or a left-over message of a terminated script).
+                console.warn("Guest response was triggered by invalid host command (" + senderId + "): " + guestResponse + "; args: " + squishy.toString(args));    // TODO: Localization
+                this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
                 return;
             }
             
-            switch (cmd) {
+            switch (guestResponse) {
                 // Script-dependent WorkerScriptContext protocol
                 case "start":
-                    var key = args;
-                    if (key != scriptInstance.instanceKey) {
-                        // The start message is used to start the script timeout timer. If a user can fake the message, user code can keep running forever.
-                        // If there is an invalid start message: There either is a bug in security-critical code, or someone is trying to cheat.
-                        console.warn("Illegal start message from userscript: " + scriptInstance);    // TODO: Localization
-                        this.events.scriptInvalidMessage.notify(scriptInstance, msg);
-                        this.restartWorker();
-                        return;
-                    }
+                    // The start command is privileged.
+                    // It is used to start the script timeout timer. If a user can execute this command, user code can keep running forever.
+                    // If there is an invalid start message: There either is a bug in security-critical code, or someone is trying to cheat.
+                    if (!this.checkPrivilegedAction(triggeringCommand, guestMsg) || triggeringCommand.timeoutTimer) return;
                     
-                    // start script timeout timer that kills long-running scripts
-                    scriptInstance.scriptTimer = setTimeout(
-                        (function(self, scriptInstance) { return function() { 
-                            if (scriptInstance.isRunning()) { 
-                                self.onScriptTimeout(scriptInstance);
+                    // start timer to make sure, command execution won't run forever
+                    triggeringCommand.timeoutTimer = setTimeout(function() {
+                            if (triggeringCommand.isActive()) {
+                                this.onCommandTimeout(triggeringCommand);
                             }
-                        }})(this, scriptInstance),
+                        }.bind(this),
                         this.defaultScriptTimeout);
                     break;
                 case "stop":
-                    var key = args;
-                    if (key != scriptInstance.instanceKey) {
-                        // The stop message is used to stop the script timeout timer. If a user can fake the message, user code can keep running forever.
-                        // If there is an invalid stop message: There either is a bug in security-critical code, or someone is trying to cheat.
-                        console.warn("Illegal stop message from userscript: " + scriptInstance);    // TODO: Localization
-                        this.events.scriptInvalidMessage.notify(scriptInstance, msg);
-                        this.restartWorker();
-                        return;
-                    }
-                    this.onScriptFinished(scriptInstance);
+                    // The stop command is privileged.
+                    // It is used to stop the script timeout timer. If a user can execute this command, user code can keep running forever.
+                    // If there is an invalid stop message: There either is a bug in security-critical code, or someone is trying to cheat.
+                    if (!this.checkPrivilegedAction(triggeringCommand, guestMsg)) return;
+                    
+                    this.onCommandFinished(triggeringCommand);
                     break;
                 case "error_eval":
                     // TODO: Get an idea of how the error came about and do not run erroneous scripts again before restart, in order to avoid evil infinite loops and error spam
-                    this.events.scriptError.notify(scriptInstance, args.message, args.stacktrace);
-                    break;
-                    
-                // custom messages
-                // TODO: Move them out of here
-                case "action":
-                    this.onAction(args);
+                    this.events.scriptError.notify(args.message, args.stacktrace);
                     break;
                 default:
-                    this.events.scriptInvalidMessage.notify(scriptInstance, msg);
+                    var handler = this.guestResponseHandlers[guestResponse];
+                    if (handler) {
+                        if (handler.isPrivileged && !checkPrivilegedAction(triggeringCommand, guestMsg)) return;
+                        handler(args);
+                    }
+                    else {
+                        // invalid guest response
+                        this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
+                    }
                     break;
             }
         },
         
         /**
-         * Is called whenever the client sends a custom action.
+         * Check whether the given guest message, triggered by the given command, is authenticated to perform privileged actions on the host side.
          */
-        onAction: squishy.abstractMethod(),
+        checkPrivilegedAction: function(triggeringCommand, guestMsg) {
+            var key = guestMsg.securityToken;
+            
+            // The guest message must have the triggeringCommand's securityToken.
+            // If it does not have that, we have a security breach.
+            if (key != triggeringCommand.getSecurityToken()) {
+                console.warn("Possible SECURITY breach: Guest tried to execute privileged command " + guestMsg.command + " without proper authentication. Triggered by: " + triggeringCommand);
+                this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
+                this.restartWorker();
+                return false;
+            }
+            return true;
+        },
         
         
         // ################################################################################################################################################################
         // Initialization part of the protocol
         
+        /**
+         * Is called after initialization (in the host context!)
+         */
+        onGuestReady: squishy.abstractMethod(),
+        
+        /**
+         * Remembers a set of globals to be sent to the guest upon initialization.
+         */
         setGuestGlobals: function(guestGlobals) {
             this.guestGlobals = guestGlobals;
         },
         
         /**
          * Is called after a new Worker has started.
-         * Initializes guest environment.
+         * Initializes guest context.
          */
         initializeGuest: function(baseUrl) {
-            // TODO: Ensure that the required globals exist
-            
             squishy.assert(this.guestGlobals, "setGuestGlobals must be called on ScriptContext, prior to initialization.");
             
             var initArgs = {
@@ -265,52 +319,43 @@ define(["squishy", "./UserScript"], function(squishy) {
                 guestGlobals: squishy.nameCode(squishy.objToEvalable(this.guestGlobals), "initGuestGlobals")
             };
             
-            this.postMessage({command: "init", args: initArgs});    // start worker
-        },
-        
-         /**
-          * Called when the guest finished initialization.
-          * Runs queued commands.
-          */
-        onReady: function() {
-            for (var i = 0; i < this.commandQueue.length; ++i) {
-                var cmd = this.commandQueue[i];
-                cmd();
-            }
-            this.commandQueue = [];
+            this.postCommand("init", initArgs, true);    // initialize guest context
         },
         
         // ################################################################################################################################################################
-        // Run, stop and manage UserScripts and UserScriptInstances
+        // Run, stop and manage UserScripts and UserCommands
         
          /**
-          * Cancel the currently running script.
+          * Prevent the given command from having any further effects.
           */
-        stopScript: function(scriptInstance, dontNotify) {
-            if (scriptInstance.scriptTimer) {
-                clearTimeout(scriptInstance.scriptTimer);
-            }
-            if (scriptInstance.running) {
-                scriptInstance.running = false;
-                if (!dontNotify) 
-                    this.events.scriptCancelled.notify(scriptInstance);
+        stopCommand: function(command, dontNotify) {
+            if (command.isActive()) {
+                command.active = false;
+                if (!dontNotify) {
+                    this.events.commandCancelled.notify(command);
+                    console.log(new Error().stack);
+                }
             }
         },
         
          /**
           * Restarts the worker when a script ran too long.
           */
-        onScriptTimeout: function(scriptInstance) {
-            this.events.scriptTimeout.notify(scriptInstance);
-            this.restartWorker();
+        onCommandTimeout: function(command) {
+            var contextId = this.contextId;
+            this.events.commandTimeout.notify(command);
+            if (contextId == this.contextId) {
+                // worker was not restarted by event listeners, so we do it now
+                this.restartWorker();
+            }
         },
         
          /**
           * Notifies listeners of the scriptFinished event.
           */
-        onScriptFinished: function(scriptInstance) {
-            this.stopScript(scriptInstance, true);
-            this.events.scriptFinished.notify(scriptInstance);
+        onCommandFinished: function(command) {
+            this.stopCommand(command, true);
+            this.events.commandFinished.notify(command);
         },
 
          /**
@@ -330,42 +375,11 @@ define(["squishy", "./UserScript"], function(squishy) {
           * @param {UserScript} script A script to be executed.
           */
         runScript: function(script) {
-            var scriptInstance = new squishy.UserScriptInstance(this, script);
-            this.runScriptInstance(scriptInstance);
-            return scriptInstance;
-        },
-
-         /**
-          * Runs the given ScriptInstance in this context.
-          * 
-          * @param {UserScript} script A script to be executed.
-          */
-        runScriptInstance: function(scriptInstance) {
-            squishy.assert(this.running, "Trying to run ScriptInstance while context was not initialized: " + scriptInstance);
-            
-            if (this.ready) {
-                // Guest has been initialized:
-                squishy.assert(!scriptInstance.started, "UserScriptInstances must not be executed more than once: " + scriptInstance);
-                scriptInstance.started = true;
-                
-                // notify listeners
-                this.events.scriptStarted.notify(scriptInstance);
-                
-                // start timer to make sure, the user script won't run forever
-                this.runningScriptInstances[scriptInstance.instanceId] = scriptInstance;
-            
-                var code = scriptInstance.script.getCodeString();
-                
-                // run script
-                scriptInstance.postCommand("run", {
-                    code: code,
-                    name: scriptInstance.script.name
-                });
-            }
-            else {
-                // queue script, and run it when guest is ready:
-                this.commandQueue.push((function(self) { return function() { self.runScriptInstance(scriptInstance); }; })(this));
-            }
+            // run script
+            this.postCommand("run", {
+                code: script.getCodeString(),
+                name: script.name
+            });
         },
         
         
@@ -377,7 +391,7 @@ define(["squishy", "./UserScript"], function(squishy) {
           * The initFunction will be executed anonymously, without arguments.
           */
         buildWorkerCode: function(initFunction, globals) {
-            var str = squishy.objToString(globals);
+            var str = squishy.toString(globals);
             str += "(" + initFunction + ")(); ";
             return str;
         }

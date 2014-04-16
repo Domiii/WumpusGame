@@ -55,6 +55,7 @@ self.whiteList = {
     "Intl": 1,
     "console": 1,
     "setTimeout": 1,
+    "constructor":1,
     
     // globals from utility libraries
     "printStackTrace": 1,
@@ -63,18 +64,20 @@ self.whiteList = {
     "requirejs": 1,                 // require is not configurable, but luckily its harmless without importScripts
     
     // helper & static context globals
-    "currentInstanceId": 1,
+    "currentSenderId": 1,
     "postAction": 1,
     "postCommand": 1,
+    "postPrivilegedCommand": 1,     // can only be used with a key, that should never be available to user code
     "postInstanceMessage": 1,
-    "lockDown": 1,                 // lockDown will be set to null explicitely to check for execution
-    "runScript": 1,                // glorified eval
+    "lockDown": 1,                  // lockDown will be set to null explicitely to check for execution
+    "runScript": 1,                 // glorified eval
+    "reportError": 1,
     "exposeGlobals": 1,
     "createGlobalEvents": 1,
     
     // user-given globals
-    "initScriptContext": 1,        // initialize context for interacting with the host
-    "onInitializationFinished": 1 // post-lockDown initialization
+    "initScriptContext": 1,         // initialize context for interacting with the host
+    "onInitializationFinished": 1   // post-lockDown initialization
 };
     
 /**
@@ -114,7 +117,7 @@ self.lockDown = function(additionalWhiteListSymbols) {
             // lock potentially insecure global
             Object.defineProperty( global, prop, {
                 get : function() {
-                    throw "Security Exception: cannot access "+prop;
+                    throw new Error("Security Exception - cannot access: "+prop);
                 }, 
                 configurable : false
             });    
@@ -126,7 +129,7 @@ self.lockDown = function(additionalWhiteListSymbols) {
         if( !whiteList.hasOwnProperty( prop ) ) {
             Object.defineProperty( global.__proto__, prop, {
                 get : function() {
-                    throw "Security Exception: cannot access "+prop;
+                    throw new Error("Security Exception - cannot access: "+prop);
                 }, 
                 configurable : false
             });    
@@ -176,7 +179,7 @@ Object.defineProperty(global, "postAction",  {
     configurable: false,
     enumrable: false,
     value: function(args) {
-        postMessage({instanceId: currentInstanceId, command: "action", args: args});
+        postCommand("action", args);
     }
 });
 
@@ -188,25 +191,26 @@ Object.defineProperty(global, "postCommand",  {
     configurable: false,
     enumrable: false,
     value: function(cmd, args) {
-        postMessage({instanceId: currentInstanceId, command: cmd, args: args});
+        var msg = {senderId: currentSenderId, command: cmd, args: args};
+        postMessage(msg);
     }
 });
 
 /**
- * Sends a given message to host, including currentInstanceId.
+ * Sends a given message to host, including currentSenderId.
  */
 Object.defineProperty(global, "postInstanceMessage",  {
     writable: false,
     configurable: false,
     enumrable: false,
     value: function(msg) {
-        msg.instanceId = currentInstanceId;
+        msg.senderId = currentSenderId;
         postMessage(msg);
     }
 });
 
 /**
- * Fancy version of eval, with proper error reporting.
+ * Fancy version of eval.
  */
 Object.defineProperty(global, "runScript", {
     writable: false,
@@ -217,35 +221,49 @@ Object.defineProperty(global, "runScript", {
             // run user code
             return eval(code);
         } catch (err) {
-            var trace = printStackTrace({e: err});
-            var args = {message: err.message, stacktrace: [] };
-            var beforeEval = true;
-            
-            // Each line has a format similar to: "functionName@url:line:column"
-            var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
-            for (var i = 0; i < trace.length; ++i) {
-                var line = trace[i];
-                var match = frameRegex.exec(line);      // extract frame info from frame string
-                
-                if (match) {
-                    var functionName = match[1];
-                    var fileName = match[2];
-                    var line = parseInt(match[3]);
-                    var column = parseInt(match[4]);
-                
-                    // only report it, if it is a user script
-                    var displayFunctionName = functionName === "eval" ? null : functionName;
-                    args.stacktrace.push({fileName: fileName, functionName: displayFunctionName, line: line, column: column});
-                }
-            }
-            
-            // warn dev
-            //console.warn(trace.join("\n"));
-            console.warn(err.stack);
-            
-            // run-time error
-            postInstanceMessage({command: "error_eval", args: args});
+            reportError(err);
         }
+    }
+});
+
+/**
+ * Report error back to host.
+ *
+ * TODO: Fix stacktrace parsing.
+ */
+Object.defineProperty(global, "reportError", {
+    writable: false,
+    configurable: false,
+    enumrable: false,
+    value: function(err) {
+        var trace = printStackTrace({e: err});
+        var args = {message: err.message, stacktrace: [] };
+        var beforeEval = true;
+        
+        // Each line has a format similar to: "functionName@url:line:column"
+        var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
+        for (var i = 0; i < trace.length; ++i) {
+            var line = trace[i];
+            var match = frameRegex.exec(line);      // extract frame info from frame string
+            
+            if (match) {
+                var functionName = match[1];
+                var fileName = match[2];
+                var line = parseInt(match[3]);
+                var column = parseInt(match[4]);
+            
+                // only report it, if it is a user script
+                var displayFunctionName = functionName === "eval" ? null : functionName;
+                args.stacktrace.push({fileName: fileName, functionName: displayFunctionName, line: line, column: column});
+            }
+        }
+        
+        // warn dev
+        //console.warn(trace.join("\n"));
+        console.warn(err.stack);
+        
+        // run-time error
+        postInstanceMessage({command: "error_eval", args: args});
     }
 });
 
@@ -262,17 +280,17 @@ Object.defineProperty(global, "createGlobalEvents", {
     enumrable: false,
     value: function(eventIds, getEventHandlerNameById) {
         // create event handlers
-        var events = {};
+        var eventHandlers = {};
             
         // create global getter which looks up the event handler in the events map
         var createEventHandler = function(eventId, eventHandlerName) {
-            Object.defineProperty(self, eventHandlerName, {
+            Object.defineProperty(global, eventHandlerName, {
                 configurable: true,
                 get: function() {
-                    return events[eventId];
+                    return eventHandlers[eventId];
                 },
                 set: function(value) {
-                    events[eventId] = value;
+                    eventHandlers[eventId] = value;
                 }
             });
         };
@@ -281,12 +299,14 @@ Object.defineProperty(global, "createGlobalEvents", {
         for (var i = 0; i < eventIds.length; ++i) {
             var eventId = eventIds[i];
             var eventHandlerName = getEventHandlerNameById(eventId);
+            
             createEventHandler(eventId, eventHandlerName);
             
             // add event handler stub to event map
-            events[eventId] = function() {};
+            eventHandlers[eventId] = function() {};
         }
-        return events;
+        
+        return eventHandlers;
     }
 });
 
@@ -316,6 +336,11 @@ Object.defineProperty(global, "exposeGlobals", {
     }
 });
 
+
+
+// ################################################################################################################
+// Context initialization: Register the onmessage event handler.
+
 /**
  * This function is initially and anonymously called to initialize this Worker.
  */
@@ -325,11 +350,8 @@ Object.defineProperty(global, "exposeGlobals", {
     onmessage = function(event) {
         if (!event.data) return;
         
-        // remember script instance id to identify the origin when messages are received by host
-        self.currentInstanceId = event.data.instanceId;
-        
-        // instanceKey is a private identifier that we use to make sure that the user code cannot fake start or stop messages
-        var instanceKey = event.data.instanceKey;
+        // remember command sender's id to identify the origin when messages are received by host
+        self.currentSenderId = event.data.senderId;
         
         // get command name and arguments
         var cmd = event.data.command;
@@ -346,11 +368,36 @@ Object.defineProperty(global, "exposeGlobals", {
                 importScripts(baseUrl + "lib/require.js");
                 
                 // initialize custom globals
-                var guestGlobals = runScript(args.guestGlobals);
+                try {
+                    var guestGlobals = eval(args.guestGlobals);
+                }
+                catch (err) {
+                    throw new Error("Unable to eval guestGlobals: " + err.stack);
+                }
                 var initScriptContext = guestGlobals.initScriptContext || function() {};
                 var onInitializationFinished = guestGlobals.onInitializationFinished || function() {};
                 var globals = guestGlobals.globals || {};
-                local.commandHandlers = guestGlobals.commandHandlers || {};
+                var commandHandlers = guestGlobals.commandHandlers || {};
+                
+                // check for handler configuration
+                local.commandHandlers = {};
+                Object.keys(commandHandlers).forEach(function(prop) {
+                    if (!commandHandlers.hasOwnProperty(prop)) return;
+                    var handler = commandHandlers[prop];
+                    if (handler instanceof Function) {
+                        local.commandHandlers[prop] = handler;
+                    }
+                    else if (handler.handlerFunction instanceof Function) {
+                        local.commandHandlers[prop] = handler.handlerFunction;
+                        local.commandHandlers[prop].isPrivileged = handler.isPrivileged;
+                    }
+                    else {
+                        console.warn("Invalid commandHandler \"" + prop + "\" is not a function, nor an object with a \"handlerFunction\" property that is a function.");
+                    }
+                });
+                
+                // register handler to run user scripts (not privileged!)
+                local.commandHandlers["run"] = function(args) { runScript(args.code); };
                 
                 /**
                  * Simulator-specific initialization of the Worker context.
@@ -391,19 +438,35 @@ Object.defineProperty(global, "exposeGlobals", {
                     }
                 });
                 break;
-            case "run":
-                // run a script
+            default:
                 if (lockDown) return;        // the context has not been locked down yet. I.e. initialization has not finished yet.
                 
-                postCommand("start", instanceKey);     // signal host that script has started
-                runScript(args.code);                   // run script
-                postCommand("stop", instanceKey);      // signal host that script has finished
-                break;
-            default:
                 // check for custom command handler
                 var handler = local.commandHandlers[cmd];
-                if (handler) {
-                    handler(args);
+                if (handler) {        
+                    // securityToken is used to to send privileged messages to the host, such as start or stop, while preventing user code from doing the same.
+                    // We don't want the raw key to be lingering on the stack, due to ECMA's non-standardized stackframe API.
+                    // Instead, we hide it in a closure whose stackframe is generally impossible (or at least harder) to obtain.
+                    var postPrivilegedCommand = (function(securityToken) { return function(commandName, args) {
+                        var msg = {senderId: currentSenderId, securityToken: securityToken, command: commandName, args: args};
+                        postMessage(msg);
+                    }})(event.data.securityToken);
+                    event.data.securityToken = null;
+                    
+                    postPrivilegedCommand("start");     // signal host that command execution has started
+                    try {
+                        if (handler.isPrivileged) {
+                            // pass postPrivilegedCommand only to privileged handlers
+                            handler(args, postPrivilegedCommand);
+                        }
+                        else {
+                            handler(args);
+                        }
+                    }
+                    catch (err) {
+                        reportError(err);
+                    }
+                    postPrivilegedCommand("stop");      // signal host that command execution has finished
                 }
                 else {
                     // developer error
