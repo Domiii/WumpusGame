@@ -17,13 +17,13 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
         
         // create event objects
         this.events = {
-            tileChanged: new squishy.Event(this),
-            restart: new squishy.Event(this),
-            scriptError: new squishy.Event(this),
-            scriptFinished: new squishy.Event(this),
-            statusChanged: new squishy.Event(this),
-            playerStateChanged: new squishy.Event(this),
-            playerEvent: new squishy.Event(this)
+            tileChanged: squishy.createEvent(this),
+            restart: squishy.createEvent(this),
+            scriptError: squishy.createEvent(this),
+            scriptFinished: squishy.createEvent(this),
+            statusChanged: squishy.createEvent(this),
+            playerStateChanged: squishy.createEvent(this),
+            playerEvent: squishy.createEvent(this)
         };
         
         // create core objects
@@ -250,7 +250,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
                     // add log entry
                     eventChain.forEach(function(evt) {
                         this.eventLog.push(evt);
-                        //console.log(wumpusGame.PlayerEvent.toString(evt.eventId) + squishy.toString(event.args));
+                        //console.log(wumpusGame.PlayerEvent.toString(evt.eventId) + squishy.objToString(event.args));
                     }.bind(this));
                     this.eventChain = null;
                 }

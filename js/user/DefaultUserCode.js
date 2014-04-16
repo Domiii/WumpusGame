@@ -36,7 +36,7 @@ var turnToward = function(newDirection) {
 // ############################################################################
 // Event handlers
 
-onGameStart = function(args) {
+self.onGameStart = function(args) {
     // set global state
     playerX = args.playerX;
     playerY = args.playerY;

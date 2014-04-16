@@ -8,7 +8,7 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
      * We use UserCommand objects to run and keep track of potentially non-privileged code in the guest context.
      * Every command has a public id (senderId) and a private security token (securityToken).
      *
-     * @param {WorkerScriptContext} context The context to which this command belongs.
+     * @param {HostScriptContext} context The context to which this command belongs.
      * @param {String} commandName The name of the command.
      * @param {Object} commandArgs Command arguments.
      */
@@ -70,7 +70,7 @@ define(["squishy", "squishy/../squishy.crypto"], function() {
         },
         
         toString: function() {
-            return squishy.toString(this.message);
+            return squishy.objToString(this.message);
         },
     };
     

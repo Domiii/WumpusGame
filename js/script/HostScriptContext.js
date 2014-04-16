@@ -1,5 +1,5 @@
 /**
- * This file initializes and manages the remote GuestCode to safely run any UserScript.
+ * This file initializes and manages the remote GuestCodeContext to safely run any UserScript.
  */
 
 "use strict";
@@ -23,18 +23,18 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
       * @constructor
       * @param {Object} config Configuration
       */
-    var WorkerScriptContext = function(config) {
+    var HostScriptContext = function(config) {
         this.defaultScriptTimeout = config.defaultScriptTimeout || 500;
         
         // reset stuff
         this.timeoutTimer = null;
         this.events = {
-            commandStarted: new squishy.Event(this),
-            commandFinished: new squishy.Event(this),
-            commandCancelled: new squishy.Event(this),
-            commandTimeout: new squishy.Event(this),
-            scriptError: new squishy.Event(this),
-            invalidGuestResponse: new squishy.Event(this)      // args: triggeringCommand, message
+            commandStarted: squishy.createEvent(this),
+            commandFinished: squishy.createEvent(this),
+            commandCancelled: squishy.createEvent(this),
+            commandTimeout: squishy.createEvent(this),
+            scriptError: squishy.createEvent(this),
+            invalidGuestResponse: squishy.createEvent(this)      // args: triggeringCommand, message
         }
         
         // guestResponseHandlers are called when the guest sends a custom response
@@ -52,7 +52,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
      /**
       * Whether a script is currently running.
       */
-    WorkerScriptContext.prototype = {
+    HostScriptContext.prototype = {
          /**
           * Restarts the worker (stops if it is currently running).
           */
@@ -202,7 +202,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             
             if (!guestResponse) return;
             
-            // Script-independent WorkerScriptContext protocol
+            // Script-independent HostScriptContext protocol
             switch (guestResponse) {
                 case "ready":
                     // worker finished initialization
@@ -227,13 +227,13 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             var triggeringCommand = this.sentCommands[senderId];
             if (!triggeringCommand || !triggeringCommand.isActive()) {
                 // The command that caused this message to be sent is gone (invalid user-sent message or a left-over message of a terminated script).
-                console.warn("Guest response was triggered by invalid host command (" + senderId + "): " + guestResponse + "; args: " + squishy.toString(args));    // TODO: Localization
+                console.warn("Guest response was triggered by invalid host command (" + senderId + "): " + guestResponse + "; args: " + squishy.objToString(args));    // TODO: Localization
                 this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
                 return;
             }
             
             switch (guestResponse) {
-                // Script-dependent WorkerScriptContext protocol
+                // Script-dependent HostScriptContext protocol
                 case "start":
                     // The start command is privileged.
                     // It is used to start the script timeout timer. If a user can execute this command, user code can keep running forever.
@@ -391,11 +391,11 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
           * The initFunction will be executed anonymously, without arguments.
           */
         buildWorkerCode: function(initFunction, globals) {
-            var str = squishy.toString(globals);
+            var str = squishy.objToString(globals);
             str += "(" + initFunction + ")(); ";
             return str;
         }
     };
     
-    return WorkerScriptContext;
+    return HostScriptContext;
 });

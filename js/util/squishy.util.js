@@ -374,20 +374,20 @@ define([], function() {
         // since this builds the string of an rvalue, we must wrap it in "()"
         // this makes sure, it won't interpreted as a block of code
         // see: http://stackoverflow.com/questions/23092966/eval-wont-work-on-objects-that-contain-functions
-        return "(" + squishy.toString(obj) + ")";
+        return "(" + squishy.objToString(obj) + ")";
     };
     
     /**
       * This is a "deep toString" function. Unlike JSON.stringify, this also works for functions.
       */
-    squishy.toString = function(obj, layer, indent) {
+    squishy.objToString = function(obj, layer, indent) {
         // TODO: Consider using proper stringbuilder for better performance
         var str = "";
         var isArray = obj instanceof Array;
         var isObject = typeof(obj) === "object";
         
         if (layer > 20)  {
-            throw new Error("Possible cyclic object nesting in squishy.toString().");
+            throw new Error("Possible cyclic object nesting in squishy.objToString().");
         }
         
         layer = layer || 0;
@@ -419,7 +419,7 @@ define([], function() {
             var iterator = function(propName) {
                 var prop = obj[propName];
                 
-                var propStr = squishy.toString(prop, layer+1, indent);
+                var propStr = squishy.objToString(prop, layer+1, indent);
                 
                 if (isArray) {
                     str += indent + propStr + ",\n";
@@ -682,13 +682,13 @@ define([], function() {
     /**
      * Creates a new event, representing a list of event handler callbacks.
      */
-    squishy.Event = function() {
-        var Event = function(_this) {
+    squishy._Event = function() {
+        var _Event = function(_this) {
             this._this = _this;
             this.listeners = [];
         };
         
-        Event.prototype = {
+        _Event.prototype = {
             /**
              * Adds the given callback function to this event.
              */
@@ -714,8 +714,13 @@ define([], function() {
             }
         };
         
-        return Event;
+        return _Event;
     }();
+    
+    /**
+     * Creates a new C#-style event (which is mostly a list of callbacks);
+     */
+    squishy.createEvent = function(_this) { return new squishy._Event(_this); };
 
 
     // ##############################################################################################################

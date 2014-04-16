@@ -103,13 +103,14 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
      */
     wumpusGame.Player.prototype.startNextEvent = function() {
         if (this.eventQueue.length == 0) {
+            // nothing left in queue: Stop running
             this.eventTimer = null;
             return;
         }
         
         // dequeue action
-        var nextAction = this.eventQueue[0];
-        this.eventQueue.splice(0, 1);
+        var nextAction = this.eventQueue[0];    // get action
+        this.eventQueue.splice(0, 1);           // remove from queue
         
         // start timer
         this.eventTimer = setTimeout(nextAction, this.game.playerActionDelay);
@@ -121,12 +122,15 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     wumpusGame.Player.prototype.addDelayedEvent = function(callback, index) {
         (function(player) {
             if (squishy.isDefined(index)) {
+                // insert at index
                 player.eventQueue.splice(index, 0, function() { callback(); player.startNextEvent(); });
             }
             else {
+                // add to end of queue
                 player.eventQueue.push(function() { callback(); player.startNextEvent(); });
             }
             if (!player.eventTimer) {
+                // if timer currently not running, continue processing the queue now
                 player.startNextEvent();
             }
         })(this);

@@ -49,7 +49,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
             jQuery.get('js/user/DefaultUserCode.js', function(code) {
                 ui.scriptEditor.setValue(code, -1);
             }).fail(function() {
-                console.warn("Failed to load user code: " + squishy.toString(arguments));
+                console.warn("Failed to load user code: " + squishy.objToString(arguments));
             });
             
             // #####################################################
@@ -153,10 +153,10 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                     }
                     
                     // create complete error message
-                    info = (frame.functionName ? "in " + frame.functionName + "()" : "") + " - line " + frame.line + ", column " + frame.column + "\n";
+                    info = "at " + frame.infoString + "\n";
                     for (var i = 1; i < stacktrace.length; ++i) {
                         frame = stacktrace[i];
-                        info += "called from " + (frame.functionName ? frame.functionName + "() at " : "") + "line " + frame.line + ", column " + frame.column + "\n";
+                        info += "called from " + frame.infoString + "\n";
                     }
                 }
                 else {

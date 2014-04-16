@@ -4,7 +4,7 @@
 "use strict";
 
 
-define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScriptContext) {
+define(["squishy", "../script/HostScriptContext"], function(squishy, HostScriptContext) {
 
     // ################################################################################################################################################################
     // Define globals that will later exist in the guest context.
@@ -128,12 +128,12 @@ define(["squishy", "../script/WorkerScriptContext"], function(squishy, WorkerScr
 
     
     // ################################################################################################################################################################
-    // GameScriptContext class (inherits from WorkerScriptContext)
+    // GameScriptContext class (inherits from HostScriptContext)
     
     /**
      * IMPORTANT: All this code is run in the host context.
      */
-    wumpusGame.GameScriptContext = squishy.extend(WorkerScriptContext,
+    wumpusGame.GameScriptContext = squishy.extend(HostScriptContext,
         /**
          * Creates a new GameScriptContext.
          * @constructor

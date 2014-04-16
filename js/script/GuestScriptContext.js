@@ -240,27 +240,40 @@ Object.defineProperty(global, "reportError", {
         var args = {message: err.message, stacktrace: [] };
         var beforeEval = true;
         
-        // Each line has a format similar to: "functionName@url:line:column"
-        var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
+        // Parse the printStackTrace format (no idea, why they did not do this...)
+        // Each line has a format similar to: "functionName@url:line:column" (however, URL can (but does not have to) contain colons and/or @'s)
+        //var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
         for (var i = 0; i < trace.length; ++i) {
-            var line = trace[i];
-            var match = frameRegex.exec(line);      // extract frame info from frame string
+            var frameInfo = trace[i];
+            var functionName = frameInfo;
+            var url = ""
+            var line = -1, column = -1;
             
-            if (match) {
-                var functionName = match[1];
-                var fileName = match[2];
-                var line = parseInt(match[3]);
-                var column = parseInt(match[4]);
-            
-                // only report it, if it is a user script
-                var displayFunctionName = functionName === "eval" ? null : functionName;
-                args.stacktrace.push({fileName: fileName, functionName: displayFunctionName, line: line, column: column});
+            var locationIndex = frameInfo.indexOf('@')+1;
+            if (locationIndex > 0) {
+                functionName = frameInfo.substring(0, locationIndex-1);
+                var location = frameInfo.substring(locationIndex);
+                var colIdx = frameInfo.lastIndexOf(':')+1;
+                var lineIdx = frameInfo.lastIndexOf(':', colIdx-2)+1;
+                if (colIdx > 0 && lineIdx > 0) {
+                    url = frameInfo.substring(locationIndex, lineIdx-1);
+                    line = frameInfo.substring(lineIdx, colIdx-1);
+                    column = frameInfo.substring(colIdx);
+                }
+                else {
+                    // no line or column given (probably native code)
+                    url = location;
+                }
             }
+            
+            // add to stacktrace array
+            args.stacktrace.push({fileName: url, functionName: functionName, line: line, column: column, infoString: frameInfo});
         }
         
-        // warn dev
-        //console.warn(trace.join("\n"));
-        console.warn(err.stack);
+        // warn developer
+        console.warn(trace.join("\n"));
+        //console.warn(err.stack);
+        //console.warn(squishy.objToString(args.stacktrace));
         
         // run-time error
         postInstanceMessage({command: "error_eval", args: args});
