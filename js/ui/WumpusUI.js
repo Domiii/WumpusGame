@@ -2,8 +2,29 @@
  * This file contains the definition of the game's UI.
  */
 "use strict";
+
+/**
+ * All dependencies of WumpusUI.
+ * @const
+ */
+var dependencies = [
+    // WumpusGame Core UI
+    "./GridUI", 
+    
+    // Scripting Core UI
+    "./ScriptEditorUI",
+    
+    // JQuery, UI & Layout
+    "jquery", "jquery_ui", "jquery_ui_layout",  
+    
+    // Other UI elements
+    "./Notifier", "Lib/mousetrap.min",
+
+    // Non-UI stuff
+    "localizer"
+];
  
-define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout", "./Notifier"], function() {
+define(dependencies, function() {
      /**
       * Creates a new WumpusUI object for managing the UI of the WumpusGame.
       *
@@ -26,7 +47,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
         squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
         squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
         
-        // setup UI
+        // setup properties
         this.visibility = !!config.visibility;        // force to bool
         this.game = game;
         this.gameEl = $(config.gameEl);
@@ -40,20 +61,290 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
         this.gridUI.attr("tabindex", 1);
         $(this.scriptEditor).attr("tabindex", 2);
         
-        this.scriptNotifications = new NotificationList({containerElement : this.scriptEditor.editorContainerEl});
-        this.gameNotifications = new NotificationList({containerElement : this.gridUI});
+        // load default user code
+        jQuery.get('js/user/DefaultUserCode.js', function(code) {
+            this.scriptEditor.setValue(code, -1);
+        }.bind(this)).fail(function() {
+            console.warn("Failed to load user code: " + squishy.objToString(arguments));
+        });
         
-        // setup listeners
-        (function(ui) {        
-            // load default user code
-            jQuery.get('js/user/DefaultUserCode.js', function(code) {
-                ui.scriptEditor.setValue(code, -1);
-            }).fail(function() {
-                console.warn("Failed to load user code: " + squishy.objToString(arguments));
+        // create notification lists
+        // TODO: Replace with something better
+        this.gameNotifications = new NotificationList({containerElement : this.gridUI});
+        this.scriptNotifications = new NotificationList({containerElement : this.scriptEditor.editorContainerEl});
+        
+        // setup event listeners
+        this.setupGameEventListeners();
+        this.setupScriptEventListeners();
+        
+        // go go go
+        this.initLanguage();
+        this.initMenu();
+    };
+
+    /**
+     * Visibility enum.
+     * @const
+     */
+    wumpusGame.WumpusUI.Visibility = {
+        /**
+         * TODO: Only visited tiles are visible.
+         */
+        Visited : 1,
+        /**
+         * Entire grid is visible, but you can only see contents of visited tiles.
+         */
+        AllFoggy : 2,
+        /**
+         * The entire grid is visible.
+         */
+        All : 3
+    };
+
+    // methods
+    wumpusGame.WumpusUI.prototype = {
+        /**
+         * Guess language, based on what server determined to be good for this client.
+         */
+        initLanguage: function() {
+            var languageName;
+
+            // Set the language from the meta tag above
+            languageName = $("meta[name='accept-language']").attr("content");
+            Localizer.setLanguage(languageName);
+
+            // This can be hard-coded, since it shouldn't change based on the user
+            Localizer.setFallbackLanguage("en-US")
+        },
+        
+        /**
+         * Create menu.
+         */
+        initMenu: function() {
+            var menu = $("<div></div>");
+            require(["jquery_root/jquery.ui.menubar"], function() {
+                menu.menubar({
+                    menuIcon : true,
+                    select : function(event, ui){
+                        var item = ui.item;
+                        var command = item.command;
+                        command();
+                    }
+                });
+            });
+            return menu;
+        },
+        
+        /**
+         * TODO
+         */
+        createCommandMap: function() {
+            var game = this.game;
+            if (e.which == arrowKey.up) {
+               game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
+            }
+            if (e.which == arrowKey.down) { 
+               game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
+            }
+            if (e.which == arrowKey.right) { 
+               game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
+            }
+            if (e.which == arrowKey.left) { 
+               game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+            }
+            if (e.which == 'E'.charCodeAt(0) || e.which == 'e'.charCodeAt(0)) {
+               game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
+            }
+            if (e.which == 'R'.charCodeAt(0) || e.which == 'r'.charCodeAt(0)) {
+                game.restart();
+            }
+            if (e.which == 'X'.charCodeAt(0) || e.which == 'x'.charCodeAt(0)) {
+                ui.runUserScript();
+            }
+            if (e.which == 'S'.charCodeAt(0) || e.which == 's'.charCodeAt(0)) {
+                game.player.stopPlayer();
+            }
+        },
+    
+    
+        // ##############################################################################################################
+        // Layouting
+        
+        /**
+         * Determines the layout type and then layouts the entire UI correspondingly.
+         */
+        resetLayout: function() {
+            // TODO: Provide different layouts for different window sizes.
+            // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
+            
+            // create container for north layout
+            var northContExisted = !!this.northCotainer;
+            var northCont = this.northCotainer || $(document.createElement("div"));
+            
+            if (!northContExisted) {
+                northCont.css({padding: "0px", border: "0px", margin: "0px"});
+            
+                // add key handlers
+                // TODO: Use a consistent key enum & connect to buttons (if buttons exist)
+                var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
+                var keyHandler = (function(ui) { return function(e){
+                    var focused = $(':focus');
+                    var editorFocused = (focused[0] && focused[0].type === "textarea");        // if something was focused, its most probably the textarea of the input
+                    
+                    if (e.keyCode == 27) {
+                        // escape: Toggle focus between editor and game grid
+                        if (editorFocused) {
+                            ui.gridUI.focus();                // focus on grid
+                        }
+                        else {
+                            ui.scriptEditor.focus();        // focus on editor
+                        }
+                    }
+                
+                    if (editorFocused) return;        // the remaining events are only for game control, not for script editing
+                };
+                })(this);
+                
+                // attach to document and check internally because we are not using a textarea to capture key shortcuts
+                $(document).keydown(keyHandler);
+            }
+            
+            // remove existing layout classes
+            var layoutRemover = function (index, className) {
+                return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
+            };
+            this.gridUI.removeClass(layoutRemover);
+            this.scriptEditor.editorEl.removeClass(layoutRemover);
+            northCont.removeClass(layoutRemover);
+            
+            // re-compute layout
+            var totalH = $(this.gameEl[0].parentNode).innerHeight();
+            var totalW = $(this.gameEl[0].parentNode).innerWidth();
+            
+            this.gridUI.addClass("ui-layout-center");
+            this.toolsEl.addClass("ui-layout-east");
+            northCont.addClass("ui-layout-center");
+            this.scriptEditor.editorContainerEl.addClass("ui-layout-east");
+            
+            // restructure layout
+            northCont.append(this.gridUI);
+            northCont.append(this.toolsEl);
+            this.gameEl.prepend(northCont);
+            
+            // grid vs. toolbar
+            this.northLayout = northCont.layout({
+                applyDefaultStyles: true,
+                onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
+                
+                center : {
+                    minSize : totalW,
+                    size : totalW,
+                },
+                east : {
+                    minSize : totalW/10,
+                    size : totalW/8,
+                }
             });
             
-            // #####################################################
-            // Game events
+            // grid + toolbar vs. script editor
+            this.UILayout = this.gameEl.layout({
+                applyDefaultStyles: true,
+                minSize : totalH/4,
+                size : totalH/2,
+                onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
+                //closable: false,
+                
+                center : {
+                    minSize : totalW/4,
+                    size : totalW/2,
+                },
+                east : {
+                    minSize : totalW/4,
+                    size : totalW/2,
+                }
+            });
+            
+            this.updateChildLayout();
+        },
+
+        /**
+         * Update layout of children.
+         */
+        updateChildLayout: function() {
+            var totalH = $(this.gameEl[0].parentNode).innerHeight();
+            //this.UILayout.sizePane('south', totalH/2);
+            
+            this.gridUI.updateGridLayout();
+            this.scriptEditor.updateScriptEditorLayout();
+        },
+
+        
+        // ##############################################################################################################
+        // React to game events
+        
+        /**
+         * This is called whenever a tile is updated (can be caused by layouting, but also by game mechanics).
+         */
+        updateTileStyle: function(tileEl) {
+            var tile =  tileEl.tile;
+            
+            // set player
+            if (this.game.player.getTile() == tile) {
+                this.movePlayerTile(tileEl);
+            }
+        },
+
+        /**
+         * Adds the player element to the given tile element.
+         */
+        movePlayerTile: function(tileEl) {
+            var w = tileEl.innerWidth() - parseInt(tileEl.css("padding-left"));
+            var h = tileEl.innerHeight() - parseInt(tileEl.css("padding-top"));
+            
+            // reset style
+            //this.playerEl.attr("style", "");
+            
+            // set position & size
+            this.playerEl.css({
+                left : "0px", 
+                top : "0px",
+                zIndex : "-1000",
+                position : "absolute"
+            });
+            this.playerEl.outerWidth(w, true);     // width includes margin
+            this.playerEl.outerHeight(h, true);    // height includes margin
+            
+            // rotate player
+            var direction = this.game.player.direction;
+            var angle = wumpusGame.Direction.computeAngle(direction);
+            squishy.transformRotation(this.playerEl[0], angle);
+            
+            // add as first child of tileEl
+            tileEl.prepend(this.playerEl);
+        },
+        
+        
+        // ##############################################################################################################
+        // Editor management
+        
+        /**
+         * Runs the script that is currently present in the editor.
+         */
+        runUserScript: function() {
+            this.scriptNotifications.clearNotifications();          // remove all pending notifications
+            this.scriptEditor.getSession().clearAnnotations();
+            var code = this.scriptEditor.getSession().getValue().toString();
+            
+            // TODO: Proper script (i.e. rudimentary asset) management structure. The UI should not decide on file names etc.
+            this.game.scriptContext.startUserScript(code, "_userscript_912313_");
+        },
+        
+        
+        // ###############################################################################################################################################################
+        // Game events
+            
+        setupGameEventListeners: function() {
+            var ui = this;
             
             ui.game.events.tileChanged.addListener(function(tile) {
                 // update tile rendering
@@ -123,10 +414,14 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
             ui.game.events.playerStateChanged.addListener(function(stateName, value) {
                 // TODO: score or ammo changed
             });
+        },
+        
             
+        // ###############################################################################################################################################################
+        // Script events
             
-            // #####################################################
-            // Script events
+        setupScriptEventListeners: function() {
+            var ui = this;
             
             ui.game.scriptContext.events.commandTimeout.addListener(function(command) {
                 // script was cancelled due to timeout
@@ -140,7 +435,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
             });
             
             
-            // TODO: Need proper script manager to for meaningful error messages and error navigation
+            // TODO: Need proper script manager for meaningful error messages and error navigation
             ui.game.scriptContext.events.scriptError.addListener(function(message, stacktrace) {
                 // display notification
                 var frame = stacktrace[0];
@@ -165,218 +460,7 @@ define(["./GridUI", "./ScriptEditorUI", "jquery", "jquery_ui", "jquery_ui_layout
                 
                 ui.scriptNotifications.error(info, "ERROR: " + message, true);
             });
-        })(this);
-    };
-
-    /**
-     * Visibility enum.
-     * @const
-     */
-    wumpusGame.WumpusUI.Visibility = {
-        /**
-         * TODO: Only visited tiles are visible.
-         */
-        Visited : 1,
-        /**
-         * Entire grid is visible, but you can only see contents of visited tiles.
-         */
-        AllFoggy : 2,
-        /**
-         * The entire grid is visible.
-         */
-        All : 3
-    };
-
-    /**
-     * Determines the layout type and then layouts the entire UI correspondingly.
-     */
-    wumpusGame.WumpusUI.prototype.resetLayout = function() {
-        // TODO: Provide different layouts for different window sizes.
-        // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
-        
-        // create container for north layout
-        var northContExisted = !!this.northCotainer;
-        var northCont = this.northCotainer || $(document.createElement("div"));
-        
-        if (!northContExisted) {
-            northCont.css({padding: "0px", border: "0px", margin: "0px"});
-        
-            // add key handlers
-            // TODO: Use a consistent key enum & connect to buttons (if buttons exist)
-            var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
-            var keyHandler = (function(ui) { return function(e){
-                var focused = $(':focus');
-                var editorFocused = (focused[0] && focused[0].type === "textarea");        // if something was focused, its most probably the textarea of the input
-                
-                if (e.keyCode == 27) {
-                    // escape: Toggle focus between editor and game grid
-                    if (editorFocused) {
-                        ui.gridUI.focus();                // focus on grid
-                    }
-                    else {
-                        ui.scriptEditor.focus();        // focus on editor
-                    }
-                }
-            
-                if (editorFocused) return;        // the remaining events are only for game control, not for script editing
-                
-                var game = ui.game;
-                if (e.which == arrowKey.up) {
-                   game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
-                }
-                if (e.which == arrowKey.down) { 
-                   game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
-                }
-                if (e.which == arrowKey.right) { 
-                   game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
-                }
-                if (e.which == arrowKey.left) { 
-                   game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
-                }
-                if (e.which == 'E'.charCodeAt(0) || e.which == 'e'.charCodeAt(0)) {
-                   game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
-                }
-                if (e.which == 'R'.charCodeAt(0) || e.which == 'r'.charCodeAt(0)) {
-                    game.restart();
-                }
-                if (e.which == 'X'.charCodeAt(0) || e.which == 'x'.charCodeAt(0)) {
-                    ui.runUserScript();
-                }
-                if (e.which == 'S'.charCodeAt(0) || e.which == 's'.charCodeAt(0)) {
-                    game.player.stopPlayer();
-                }
-            };
-            })(this);
-            
-            // attach to document and check internally because we are not using a textarea to capture key shortcuts
-            $(document).keydown(keyHandler);
         }
-        
-        // remove existing layout classes
-        var layoutRemover = function (index, className) {
-            return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
-        };
-        this.gridUI.removeClass(layoutRemover);
-        this.scriptEditor.editorEl.removeClass(layoutRemover);
-        northCont.removeClass(layoutRemover);
-        
-        // re-compute layout
-        var totalH = $(this.gameEl[0].parentNode).innerHeight();
-        var totalW = $(this.gameEl[0].parentNode).innerWidth();
-        
-        this.gridUI.addClass("ui-layout-center");
-        this.toolsEl.addClass("ui-layout-east");
-        northCont.addClass("ui-layout-center");
-        this.scriptEditor.editorContainerEl.addClass("ui-layout-east");
-        
-        // restructure layout
-        northCont.append(this.gridUI);
-        northCont.append(this.toolsEl);
-        this.gameEl.prepend(northCont);
-        
-        // grid vs. toolbar
-        this.northLayout = northCont.layout({
-            applyDefaultStyles: true,
-            onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
-            
-            center : {
-                minSize : totalW,
-                size : totalW,
-            },
-            east : {
-                minSize : totalW/10,
-                size : totalW/8,
-            }
-        });
-        
-        // grid + toolbar vs. script editor
-        this.UILayout = this.gameEl.layout({
-            applyDefaultStyles: true,
-            minSize : totalH/4,
-            size : totalH/2,
-            onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
-            //closable: false,
-            
-            center : {
-                minSize : totalW/4,
-                size : totalW/2,
-            },
-            east : {
-                minSize : totalW/4,
-                size : totalW/2,
-            }
-        });
-        
-        this.updateChildLayout();
-    };
-
-    /**
-     * Update layout of children.
-     */
-    wumpusGame.WumpusUI.prototype.updateChildLayout = function() {
-        var totalH = $(this.gameEl[0].parentNode).innerHeight();
-        //this.UILayout.sizePane('south', totalH/2);
-        
-        this.gridUI.updateGridLayout();
-        this.scriptEditor.updateScriptEditorLayout();
-    };
-
-    /**
-     * This is called whenever a tile is updated (can be caused by layouting, but also by game mechanics).
-     */
-    wumpusGame.WumpusUI.prototype.updateTileStyle = function(tileEl) {
-        var tile =  tileEl.tile;
-        
-        // set player
-        if (this.game.player.getTile() == tile) {
-            this.movePlayerTile(tileEl);
-        }
-    };
-
-    /**
-     * Adds the player element to the given tile element.
-     */
-    wumpusGame.WumpusUI.prototype.movePlayerTile = function(tileEl) {
-        var w = tileEl.innerWidth() - parseInt(tileEl.css("padding-left"));
-        var h = tileEl.innerHeight() - parseInt(tileEl.css("padding-top"));
-        
-        // reset style
-        //this.playerEl.attr("style", "");
-        
-        // set position & size
-        this.playerEl.css({
-            left : "0px", 
-            top : "0px",
-            zIndex : "-1000",
-            position : "absolute"
-            
-        });
-        this.playerEl.outerWidth(w, true);     // width includes margin
-        this.playerEl.outerHeight(h, true);    // height includes margin
-        
-        // rotate player
-        var direction = this.game.player.direction;
-        var angle = wumpusGame.Direction.computeAngle(direction);
-        squishy.transformRotation(this.playerEl[0], angle);
-        
-        // add as first child of tileEl
-        tileEl.prepend(this.playerEl);
-    };
-    
-    
-    // ##############################################################################################################
-    // Complex UI interactions
-    
-    /**
-     * Runs the script that is currently present in the editor.
-     */
-    wumpusGame.WumpusUI.prototype.runUserScript = function() {
-        this.scriptNotifications.clearNotifications();          // remove all pending notifications
-        this.scriptEditor.getSession().clearAnnotations();
-        var code = this.scriptEditor.getSession().getValue().toString();
-        
-        // TODO: Proper script (i.e. rudimentary asset) management structure. The UI should not decide on file names etc.
-        this.game.scriptContext.startUserScript(code, "_userscript_912313_");
     };
     
     return wumpusGame;

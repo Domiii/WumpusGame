@@ -7,12 +7,18 @@
 require.config({
     baseUrl : "",
     paths : {
+        Lib: "lib",
+    
         Util: "js/util",
+        squishy: "js/util/squishy",
+        localizer: "lib/localizer",
+        
         WumpusGame: "js",
         WumpusUI: "js/ui",
-        squishy: "js/util/squishy",
         
         ace: "lib/ace",
+        
+        jquery_root: "lib/jquery",
         jquery: "lib/jquery/jquery-2.1.0.min",
         jquery_ui: "lib/jquery/jquery-ui-1.10.4.min",
         jquery_ui_layout: "lib/jquery/jquery.layout-1.3.0-rc30.79.min"
