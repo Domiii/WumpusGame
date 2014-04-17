@@ -37,7 +37,7 @@ var turnToward = function(newDirection) {
 // Event handlers
 
 self.onGameStart = function(args) {
-    // set global state
+    // set game state
     playerX = args.playerX;
     playerY = args.playerY;
     playerDirection = args.playerDirection;
@@ -63,7 +63,7 @@ self.onGameStart = function(args) {
 };
 
 self.onMove = function(args) {
-    // update global state
+    // update game state
     playerX = args.playerX;
     playerY = args.playerY;
     score = args.newScore;
@@ -75,3 +75,13 @@ self.onMove = function(args) {
         visitedTiles.push({tileX: playerX, tileY: playerY, tileContent: tileContent});
     }
 };
+
+self.onTurn = function(args) {
+    // update game state
+    playerDirection = args.playerDirection;
+};
+
+self.onGrabGold = function(args) {
+    // update score
+    score = args.newScore;
+}

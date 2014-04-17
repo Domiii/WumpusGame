@@ -14,6 +14,8 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
     wumpusGame.Tile = function(grid, x, y, objects, tileFlags) {
         this.grid = grid;
         this.tilePosition = [x, y];
+        
+        // set contents to default (empty)
         this.clearTile();
         
         // Set unique tile id. This can be used to more easily identify this tile.

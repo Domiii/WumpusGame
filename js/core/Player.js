@@ -50,6 +50,13 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         var pos = this.position;
         return this.game.grid.getTile(pos[0], pos[1]);
     };
+
+    /**
+     * Returns the tile that this player is currently standing on.
+     */
+    wumpusGame.Player.prototype.isMoving = function() {
+        return this.eventQueue.length > 0;
+    };
     
      /**
       * Moves the player to the given tile.
