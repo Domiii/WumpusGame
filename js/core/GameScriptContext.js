@@ -133,7 +133,7 @@ define(["Squishy", "../script/HostScriptContext"], function(squishy, HostScriptC
     /**
      * IMPORTANT: All this code is run in the host context.
      */
-    wumpusGame.GameScriptContext = squishy.extend(HostScriptContext,
+    wumpusGame.GameScriptContext = squishy.extendClass(HostScriptContext,
         /**
          * Creates a new GameScriptContext.
          * @constructor
