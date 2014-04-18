@@ -3,7 +3,7 @@
  */
 "use strict";
 
-define(["squishy", "./UserScript"], function() {
+define(["Squishy", "./UserScript"], function() {
     /**
      * Indexes all scripts by their virtualPath property.
      */

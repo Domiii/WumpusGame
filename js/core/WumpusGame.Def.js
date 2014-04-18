@@ -4,7 +4,7 @@
 "use strict";
 
 
-define(["squishy"], function() {
+define(["Squishy"], function() {
     /**
      * Defines the namespace of the Wumpus game.
      */

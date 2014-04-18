@@ -241,7 +241,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
       */
     wumpusGame.Player.prototype.setScore = function(score) {
         this.score = score;
-        this.game.events.playerStateChanged.notify("score", score);
+        this.game.events.playerStateChanged.fire("score", score);
     };
     
     
@@ -250,7 +250,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
       */
     wumpusGame.Player.prototype.setAmmo = function(ammo) {
         this.ammo = ammo;
-        this.game.events.playerStateChanged.notify("ammo", ammo);
+        this.game.events.playerStateChanged.fire("ammo", ammo);
     };
     
     return wumpusGame.Player;

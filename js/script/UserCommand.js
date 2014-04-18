@@ -3,7 +3,7 @@
  */
  "use strict";
 
-define(["squishy", "squishy/../squishy.crypto"], function() {
+define(["Squishy", "Squishy/../squishy.crypto"], function() {
     /**
      * We use UserCommand objects to run and keep track of potentially non-privileged code in the guest context.
      * Every command has a public id (senderId) and a private security token (securityToken).

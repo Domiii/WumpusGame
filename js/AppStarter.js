@@ -10,7 +10,7 @@ require.config({
         Lib: "lib",
     
         Util: "js/util",
-        squishy: "js/util/squishy",
+        Squishy: "../SimplePlatformer/lib/squishy/squishy",
         localizer: "lib/localizer",
         
         WumpusGame: "js",
@@ -32,7 +32,7 @@ require.config({
 
 
 // load game and initialize UI
-require(["squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
+require(["Squishy"], function() { require(["js/GameLoader"], function(game) { require(["WumpusUI/WumpusUI"], function() {
     /** Game UI files */
 
     // ####################################################################################################

@@ -4,7 +4,7 @@
 "use strict";
 
 
-define(["squishy", "../script/HostScriptContext"], function(squishy, HostScriptContext) {
+define(["Squishy", "../script/HostScriptContext"], function(squishy, HostScriptContext) {
 
     // ################################################################################################################################################################
     // Define globals that will later exist in the guest context.
@@ -27,14 +27,14 @@ define(["squishy", "../script/HostScriptContext"], function(squishy, HostScriptC
                 baseUrl : baseUrl,
                 paths : {
                     Util: "js/util",
-                    squishy: "js/util/squishy"
+                    Squishy: "../SimplePlatformer/lib/squishy/squishy"
                 },
                 shim: {
                 }
             });
             
             // import game-related stuff
-            require([baseUrl + "js/core/WumpusGame.Def.js", "squishy"], function() {
+            require([baseUrl + "js/core/WumpusGame.Def.js", "Squishy"], function() {
                 // Done loading. Signal that we are ready.
                 onInitDone("wumpusGame", "squishy");        // white-list these globals (will not be removed)
             });

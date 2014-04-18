@@ -3,7 +3,7 @@
  */
  "use strict";
 
-define(["squishy", "squishy/../squishy.crypto"], function() {
+define(["Squishy", "Squishy/../squishy.crypto"], function() {
     var lastScriptId = 0;
 
      /**

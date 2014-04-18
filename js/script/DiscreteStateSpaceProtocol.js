@@ -22,7 +22,7 @@
 
 "use strict";
 
-define(["squishy", "./UserScript"], function(squishy) {
+define(["Squishy", "./UserScript"], function(squishy) {
     /**
      * Constructs a new DiscreteStateSpaceProtocol instance.
      *

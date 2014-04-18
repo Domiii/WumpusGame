@@ -103,7 +103,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
             this.running = true;
             
             // notify all listeners
-            this.events.restart.notify();
+            this.events.restart.fire();
             
             // send event
             this.triggerPlayerEvent(this.player, wumpusGame.PlayerEvent.GameStart);
@@ -115,7 +115,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
          */
         setStatus: function(status) {
             this.status = status;
-            this.events.statusChanged.notify(status);
+            this.events.statusChanged.fire(status);
         },
         
         /**
@@ -256,7 +256,7 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
                 }
             
                 // call listener callbacks
-                this.events.playerEvent.notify(player, eventChain);
+                this.events.playerEvent.fire(player, eventChain);
                 
             }
         }

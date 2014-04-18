@@ -4,7 +4,7 @@
 
 "use strict";
 
-define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScript, UserCommand) {
+define(["Squishy", "./UserScript", "./UserCommand"], function(squishy, UserScript, UserCommand) {
     // ################################################################################################################################################################
     // static variables
     
@@ -164,7 +164,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             }
             else {
                 // notify listeners
-                this.events.commandStarted.notify(cmd);
+                this.events.commandStarted.fire(cmd);
                 
                 // add to list of active commands
                 this.sentCommands[cmd.getId()] = cmd;
@@ -228,7 +228,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             if (!triggeringCommand || !triggeringCommand.isActive()) {
                 // The command that caused this message to be sent is gone (invalid user-sent message or a left-over message of a terminated script).
                 console.warn("Guest response was triggered by invalid host command (" + senderId + "): " + guestResponse + "; args: " + squishy.objToString(args));    // TODO: Localization
-                this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
+                this.events.invalidGuestResponse.fire(triggeringCommand, guestMsg);
                 return;
             }
             
@@ -258,7 +258,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
                     break;
                 case "error_eval":
                     // TODO: Get an idea of how the error came about and do not run erroneous scripts again before restart, in order to avoid evil infinite loops and error spam
-                    this.events.scriptError.notify(args.message, args.stacktrace);
+                    this.events.scriptError.fire(args.message, args.stacktrace);
                     break;
                 default:
                     var handler = this.guestResponseHandlers[guestResponse];
@@ -268,7 +268,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
                     }
                     else {
                         // invalid guest response
-                        this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
+                        this.events.invalidGuestResponse.fire(triggeringCommand, guestMsg);
                     }
                     break;
             }
@@ -284,7 +284,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             // If it does not have that, we have a security breach.
             if (key != triggeringCommand.getSecurityToken()) {
                 console.warn("Possible SECURITY breach: Guest tried to execute privileged command " + guestMsg.command + " without proper authentication. Triggered by: " + triggeringCommand);
-                this.events.invalidGuestResponse.notify(triggeringCommand, guestMsg);
+                this.events.invalidGuestResponse.fire(triggeringCommand, guestMsg);
                 this.restartWorker();
                 return false;
             }
@@ -332,7 +332,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
             if (command.isActive()) {
                 command.active = false;
                 if (!dontNotify) {
-                    this.events.commandCancelled.notify(command);
+                    this.events.commandCancelled.fire(command);
                     console.log(new Error().stack);
                 }
             }
@@ -343,7 +343,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
           */
         onCommandTimeout: function(command) {
             var contextId = this.contextId;
-            this.events.commandTimeout.notify(command);
+            this.events.commandTimeout.fire(command);
             if (contextId == this.contextId) {
                 // worker was not restarted by event listeners, so we do it now
                 this.restartWorker();
@@ -355,7 +355,7 @@ define(["squishy", "./UserScript", "./UserCommand"], function(squishy, UserScrip
           */
         onCommandFinished: function(command) {
             this.stopCommand(command, true);
-            this.events.commandFinished.notify(command);
+            this.events.commandFinished.fire(command);
         },
 
          /**
