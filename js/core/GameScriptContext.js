@@ -139,7 +139,7 @@ define(["Squishy", "../script/HostScriptContext"], function(squishy, HostScriptC
          * @constructor
          */
         function (game, scriptConfig) {
-            this._base(scriptConfig);       // call base constructor
+            this._super(scriptConfig);       // call base constructor
         
             // assign game
             squishy.assert(game, "game was not defined");
