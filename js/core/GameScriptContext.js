@@ -4,7 +4,7 @@
 "use strict";
 
 
-define(["Squishy", "../script/HostScriptContext"], function(squishy, HostScriptContext) {
+define(["Squishy", "./WumpusGame.Def", "../script/HostScriptContext"], function(squishy, wumpusGame, HostScriptContext) {
 
     // ################################################################################################################################################################
     // Define globals that will later exist in the guest context.

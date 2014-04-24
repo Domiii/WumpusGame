@@ -6,7 +6,7 @@
 	<title>Wumpus.js</title>
     <link rel="shortcut icon" href="img/wumpus.png">
 	
-    <link rel="stylesheet" type="text/css" href="lib/jquery/jquery-ui.css" />
+    <link rel="stylesheet" type="text/css" href="lib/jquery/jquery.mobile-1.4.2.min.css" />
 	
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/defaultstyle.css" />
@@ -16,63 +16,31 @@
 
 <body>
     <!-- The game container -->
-	<div id="wumpus-game">
-        <!-- The actual game Grid -->
-		<div id="wumpus-grid">
+	<div id="wumpus-game" data-role="page">
+        <!-- Toolbar -->
+		<div data-role="header">
 		</div>
         
-        <!-- Control panel -->
-		<div id="wumpus-tools">
-            <button id="wumpus-restart">Restart (R)</button>
-            <button id="wumpus-run">Run Script (X)</button>
-            <button id="wumpus-stop">Stop (S)</button>
-			<br>
-			<br>
-            <button id="wumpus-forward">Forward (Up)</button>
-            <button id="wumpus-backward">Backward (Down)</button>
-            <button id="wumpus-turnccw">Turn Counter-clockwise (Left)</button>
-            <button id="wumpus-turncw">Turn Clockwise (Right)</button>
-            <button id="wumpus-exit">Exit (E)</button>
+        <!-- Content -->
+        <div data-role="content" style="padding:6px">
+            <!-- The actual game Grid -->
+            <div id="wumpus-grid">
+            </div>
+            
+            <!-- Script editor -->
+            <div id="script-editor-container">
+                <div id="script-editor"></div>
+            </div>
 		</div>
         
-        <!-- Script editor -->
-        <div id="script-editor-container">
-            <div id="script-editor">function x() {
-    moveForward();
-    moveForward();
-    turnCounterClockwise();
-    
-    moveForward();
-
-    exit();
-}
-
-onGameStart = function(args) {
-    var playerX = args.playerX;
-    var playerY = args.playerY;
-    var playerDirection = args.playerDirection;
-    var score = args.score;
-    var ammo = args.ammo;
-    var visitedTiles = args.visitedTiles;
-    visitedTiles.forEach(function(tile) {
-        var tileX = tile.tileX;
-        var tileY = tile.tileY;
-        var tileContent = tile.tileContent;
-        
-        // place code for each visited tile here
-    });
-};
-
-onMove = function(args) {
-    var firstVisit = args.firstVisit;
-    var pos = args.pos;
-    console.log(pos);
-};</div>
-        </div>
+        <!-- footer -->
+        <!-- <div data-role="footer">
+            <h4>My Footer</h4>
+        </div> -->
 	</div>
     
     <!-- The player element  -->
-    <div id="wumpus-player" class="player">
+    <div id="wumpus-player" class="player" style="display:none;">
     </div>
     
     <!-- Any tile in the grid will be a copy of this element -->

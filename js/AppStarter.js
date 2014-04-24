@@ -11,7 +11,7 @@ require.config({
     
         Util: "js/util",
         Squishy: "../SimplePlatformer/lib/squishy/squishy",
-        localizer: "lib/localizer",
+        Localizer: "lib/localizer",
         
         WumpusGame: "js",
         WumpusUI: "js/ui",
@@ -20,13 +20,11 @@ require.config({
         
         jquery_root: "lib/jquery",
         jquery: "lib/jquery/jquery-2.1.0.min",
-        jquery_ui: "lib/jquery/jquery-ui-1.10.4.min",
-        jquery_ui_layout: "lib/jquery/jquery.layout-1.3.0-rc30.79.min"
+        jqm: "lib/jquery/jquery.mobile-1.4.2.min.js"
     },
     shim: {
         jquery: { exports: '$' },
-        jquery_ui: { deps: ['jquery'] },
-        jquery_ui_layout: { deps: ['jquery', 'jquery_ui'] }
+        jqm: { deps: ['jquery'] }
     }
 });
 
@@ -47,7 +45,7 @@ require(["Squishy"], function() { require(["js/GameLoader"], function(game) { re
     var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
     
     var uiConfig = {
-        visiblity : wumpusGame.WumpusUI.Visibility.AllFoggy,    // only display visited tiles
+        visiblity : wumpusGame.WumpusUI.Visibility.Visited,    // only display visited tiles
         gameEl : gameEl,
         playerEl : playerEl,
         toolsEl : toolsEl,

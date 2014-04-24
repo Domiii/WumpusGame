@@ -3,6 +3,8 @@
  */
 "use strict";
 
+// Use jQuery Mobile: http://jsfiddle.net/h5eM4/5/
+
 /**
  * All dependencies of WumpusUI.
  * @const
@@ -14,17 +16,18 @@ var dependencies = [
     // Scripting Core UI
     "./ScriptEditorUI",
     
-    // JQuery, UI & Layout
-    "jquery", "jquery_ui", "jquery_ui_layout",  
+    // JQuery & jQuery Mobile
+    "jquery", "jqm",
     
     // Other UI elements
-    "./Notifier", "Lib/mousetrap.min",
+    "./Notifier",
 
     // Non-UI stuff
-    "localizer"
+    "Localizer"
 ];
  
 define(dependencies, function() {
+
      /**
       * Creates a new WumpusUI object for managing the UI of the WumpusGame.
       *
@@ -65,7 +68,7 @@ define(dependencies, function() {
         jQuery.get('js/user/DefaultUserCode.js', function(code) {
             this.scriptEditor.setValue(code, -1);
         }.bind(this)).fail(function() {
-            console.warn("Failed to load user code: " + squishy.objToString(arguments));
+            console.warn("Failed to load default user code: " + squishy.objToString(arguments));
         });
         
         // create notification lists
@@ -78,31 +81,55 @@ define(dependencies, function() {
         this.setupScriptEventListeners();
         
         // go go go
+        this.initMousetrap(this.initCommands.bind(this));
         this.initLanguage();
-        this.initMenu();
     };
 
+    
+    // #######################################################################################################################
+    // Enums
+    
     /**
      * Visibility enum.
      * @const
      */
     wumpusGame.WumpusUI.Visibility = {
         /**
-         * TODO: Only visited tiles are visible.
+         * Visited tiles and all grid outlines are visible.
          */
         Visited : 1,
         /**
-         * Entire grid is visible, but you can only see contents of visited tiles.
+         * TODO: Only visited tiles and visited grid outlines are visible.
          */
-        AllFoggy : 2,
+        VisitedFoggy : 2,
         /**
-         * The entire grid is visible.
+         * The entire grid and all tiles visible.
          */
         All : 3
     };
 
     // methods
     wumpusGame.WumpusUI.prototype = {
+    
+        // #######################################################################################################################
+        // Initialization
+        
+        /**
+         * Do a little trick with mousetrap, to prevent it from registering global events, and instead only register it with the given container.
+         */
+        initMouseTrap: function(onSuccess) {
+            var ui = this;
+            jQuery.get("Lib/mousetrap.min", function(code) {
+                var document = ui.gameEl;
+                eval(code);
+                
+                // Call success callback
+                onSuccess();
+            }).fail(function() {
+                squishy.assert(false, "Failed to load Mousetrap: " + squishy.objToString(arguments));
+            });
+        },
+        
         /**
          * Guess language, based on what server determined to be good for this client.
          */
@@ -118,52 +145,99 @@ define(dependencies, function() {
         },
         
         /**
-         * Create menu.
+         * Initialize all commands.
          */
-        initMenu: function() {
-            var menu = $("<div></div>");
-            require(["jquery_root/jquery.ui.menubar"], function() {
-                menu.menubar({
-                    menuIcon : true,
-                    select : function(event, ui){
-                        var item = ui.item;
-                        var command = item.command;
-                        command();
+        initCommands: function() {
+            /**
+             * Set of game controls, provided by the UI.
+             */
+            var commandMap = Command.createCommandMap(this, {
+                turnccw: {
+                    prettyName: "Left",
+                    description: "Agent turns counter-clockwise, 90 degrees.",
+                    displayName: "",
+                    displayIcon: "arrow-l",
+                    keyboard: "left",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
                     }
-                });
+                },
+                forward: {
+                    prettyName: "Forward",
+                    description: "Agent takes one step forward.",
+                    displayName: "",
+                    displayIcon: "arrow-l",
+                    keyboard: "up",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
+                    }
+                },
+                turncw: {
+                    prettyName: "Right",
+                    description: "Agent turns clockwise, 90 degrees.",
+                    keyboard: "right",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
+                    }
+                },
+                backward: {
+                    prettyName: "Back",
+                    description: "Agent takes one step backward.",
+                    keyboard: "down",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
+                    }
+                },
+                exit: {
+                    prettyName: "Exit",
+                    description: "Agent exits the dungeon (when on exit).",
+                    keyboard: "e",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                    }
+                },
+                run: {
+                    prettyName: "Run",
+                    description: "Reset game and execute the current user script.",
+                    keyboard: "x",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                    }
+                },
+                restart: {
+                    prettyName: "Restart",
+                    description: "Restart game.",
+                    keyboard: "r",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                    }
+                },
+                stop: {
+                    prettyName: "Stop",
+                    description: "Stops currently queued actions.",
+                    keyboard: "r",
+                    callback: function() {
+                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                    }
+                }
             });
-            return menu;
-        },
-        
-        /**
-         * TODO
-         */
-        createCommandMap: function() {
-            var game = this.game;
-            if (e.which == arrowKey.up) {
-               game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
-            }
-            if (e.which == arrowKey.down) { 
-               game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
-            }
-            if (e.which == arrowKey.right) { 
-               game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
-            }
-            if (e.which == arrowKey.left) { 
-               game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
-            }
-            if (e.which == 'E'.charCodeAt(0) || e.which == 'e'.charCodeAt(0)) {
-               game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
-            }
-            if (e.which == 'R'.charCodeAt(0) || e.which == 'r'.charCodeAt(0)) {
-                game.restart();
-            }
-            if (e.which == 'X'.charCodeAt(0) || e.which == 'x'.charCodeAt(0)) {
-                ui.runUserScript();
-            }
-            if (e.which == 'S'.charCodeAt(0) || e.which == 's'.charCodeAt(0)) {
-                game.player.stopPlayer();
-            }
+            
+            // switch between game and editor
+            Mousetrap.bind(["esc", "ctrl+shift+s"], function() {
+                // determine what is currently in focus
+                var focused = $(':focus');
+                var editorFocused = (focused[0] && focused[0].type === "textarea");
+                
+                if (editorFocused) {
+                    this.gridUI.focus();                // focus on grid
+                }
+                else {
+                    this.scriptEditor.focus();          // focus on editor
+                }
+            }.bind(this));
+            
+            // add to toolbar and register keyboard events
+            Command.addCommandsToToolbar(commandMap);
         },
     
     
@@ -174,97 +248,7 @@ define(dependencies, function() {
          * Determines the layout type and then layouts the entire UI correspondingly.
          */
         resetLayout: function() {
-            // TODO: Provide different layouts for different window sizes.
-            // TODO: Especially consider tall-screen vs. wide-screen. And small vs. big.
-            
-            // create container for north layout
-            var northContExisted = !!this.northCotainer;
-            var northCont = this.northCotainer || $(document.createElement("div"));
-            
-            if (!northContExisted) {
-                northCont.css({padding: "0px", border: "0px", margin: "0px"});
-            
-                // add key handlers
-                // TODO: Use a consistent key enum & connect to buttons (if buttons exist)
-                var arrowKey = {left: 37, up: 38, right: 39, down: 40 };
-                var keyHandler = (function(ui) { return function(e){
-                    var focused = $(':focus');
-                    var editorFocused = (focused[0] && focused[0].type === "textarea");        // if something was focused, its most probably the textarea of the input
-                    
-                    if (e.keyCode == 27) {
-                        // escape: Toggle focus between editor and game grid
-                        if (editorFocused) {
-                            ui.gridUI.focus();                // focus on grid
-                        }
-                        else {
-                            ui.scriptEditor.focus();        // focus on editor
-                        }
-                    }
-                
-                    if (editorFocused) return;        // the remaining events are only for game control, not for script editing
-                };
-                })(this);
-                
-                // attach to document and check internally because we are not using a textarea to capture key shortcuts
-                $(document).keydown(keyHandler);
-            }
-            
-            // remove existing layout classes
-            var layoutRemover = function (index, className) {
-                return className ? (className.match (/\bui-layout-\S+/g) || []).join(' ') : "";
-            };
-            this.gridUI.removeClass(layoutRemover);
-            this.scriptEditor.editorEl.removeClass(layoutRemover);
-            northCont.removeClass(layoutRemover);
-            
-            // re-compute layout
-            var totalH = $(this.gameEl[0].parentNode).innerHeight();
-            var totalW = $(this.gameEl[0].parentNode).innerWidth();
-            
-            this.gridUI.addClass("ui-layout-center");
-            this.toolsEl.addClass("ui-layout-east");
-            northCont.addClass("ui-layout-center");
-            this.scriptEditor.editorContainerEl.addClass("ui-layout-east");
-            
-            // restructure layout
-            northCont.append(this.gridUI);
-            northCont.append(this.toolsEl);
-            this.gameEl.prepend(northCont);
-            
-            // grid vs. toolbar
-            this.northLayout = northCont.layout({
-                applyDefaultStyles: true,
-                onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
-                
-                center : {
-                    minSize : totalW,
-                    size : totalW,
-                },
-                east : {
-                    minSize : totalW/10,
-                    size : totalW/8,
-                }
-            });
-            
-            // grid + toolbar vs. script editor
-            this.UILayout = this.gameEl.layout({
-                applyDefaultStyles: true,
-                minSize : totalH/4,
-                size : totalH/2,
-                onresize_end: (function(self) { return self.updateChildLayout.bind(self); })(this),
-                //closable: false,
-                
-                center : {
-                    minSize : totalW/4,
-                    size : totalW/2,
-                },
-                east : {
-                    minSize : totalW/4,
-                    size : totalW/2,
-                }
-            });
-            
-            this.updateChildLayout();
+            // curently, does nothing
         },
 
         /**
@@ -306,6 +290,7 @@ define(dependencies, function() {
             
             // set position & size
             this.playerEl.css({
+                display: "block",
                 left : "0px", 
                 top : "0px",
                 zIndex : "-1000",
@@ -461,6 +446,87 @@ define(dependencies, function() {
                 ui.scriptNotifications.error(info, "ERROR: " + message, true);
             });
         }
+    };
+    
+    
+
+    // #######################################################################################################################
+    // Commands are objects representing possible interactions with the UI and underlying state.
+    
+    // TODO: Localization of names and descriptions
+    // TODO: Proper parameter support for commands?
+    
+    /**
+     * @constructor
+     */
+    var Command = squishy.createClass(
+        function (def) {
+            squishy.assert(def.name);
+            squishy.assert(def.callback);
+            
+            squishy.clone(def, false, this);
+            
+            this.prettyName = def.prettyName || def.name;
+            this.description = def.description || "";
+        },{
+            // prototype
+            setOwner: function(owner) { this.owner = owner; },
+            run: function() {
+                squishy.assert(this.owner, "You forgot to call UICommand.setOwner or Command.createCommandMap.");
+                this.callback.apply(this.owner, arguments);  // call call back on UI object with all arguments passed as-is
+            }
+        }
+    );
+    
+    /**
+     * Takes the owner of all commands, their definitions and 
+     * returns a new map of Command objects.
+     */
+    Command.createCommandMap = function(owner, commandDefinitions) {
+        var map = {};
+        squishy.forEachOwnProp(commandDefinitions, function(name, def) {
+            def.name = name;
+            var cmd = new Command(def);
+            cmd.setOwner(owner);
+            map[name] = cmd;
+        });
+        return map;
+    };
+    
+    /**
+     * Appends one button per command to the given toolbar.
+     * If toolbar not given, will append to jQuery Mobile header instead.
+     */
+    Command.addCommandsToToolbar = function(commandMap, toolbar, buttonCSS) {
+        squishy.forEachOwnProp(commandMap, function(name, cmd) {
+            var button = $("<a data-role=button>");
+            button.text(cmd.displayName);
+            button.attr("title", cmd.description);
+            if (cmd.displayIcon) {
+                button.attr("data-icon", cmd.displayIcon);
+            }
+            if (buttonCSS) {
+                button.css(buttonCSS);
+            }
+            
+            // arguments to run() will be the event data
+            var eventHandler = cmd.run.bind(cmd);
+            
+            // register mouse & keyboard listeners
+            button.click(eventHandler);
+            if (cmd.keydown && cmd.keydown.length > 0) {
+                Mousetrap.bind(cmd.keydown, eventHandler, 'keydown');
+            }
+            if (cmd.keyup && cmd.keyup.length > 0) {
+                Mousetrap.bind(cmd.keyup, eventHandler, 'keyup');
+            }
+            
+            if (!toolbar || !toolbar.length) {
+                toolbar = $("[data-role=header]");
+                squishy.assert(toolbar.length, "toolbar was not given, and document does not have header.");
+            }
+            toolbar.append(button);
+        });
     };
     
     return wumpusGame;

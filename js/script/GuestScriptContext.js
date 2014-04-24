@@ -229,7 +229,8 @@ Object.defineProperty(global, "runScript", {
 /**
  * Report error back to host.
  *
- * TODO: Fix stacktrace parsing.
+ * TODO: Test on node.
+ * TODO: Use built-ins, if available: http://stackoverflow.com/questions/11386492/accessing-line-number-in-v8-javascript-chrome-node-js
  */
 Object.defineProperty(global, "reportError", {
     writable: false,
@@ -240,7 +241,7 @@ Object.defineProperty(global, "reportError", {
         var args = {message: err.message, stacktrace: [] };
         var beforeEval = true;
         
-        // Parse the printStackTrace format (no idea, why they did not do this...)
+        // Parse the printStackTrace format (no idea, why they did not do this in the first place...)
         // Each line has a format similar to: "functionName@url:line:column" (however, URL can (but does not have to) contain colons and/or @'s)
         //var frameRegex = /([^@]+)@([^\:]+)\:([^\:]+)\:([^\:]+)/;
         for (var i = 0; i < trace.length; ++i) {
