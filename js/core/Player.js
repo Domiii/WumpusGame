@@ -147,11 +147,11 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
      /**
       * Lets the player perform the given wumpusGame.PlayerAction after the default delay.
       */
-    wumpusGame.Player.prototype.performActionDelayed = function(action) {
+    wumpusGame.Player.prototype.performActionDelayed = function(action, delay) {
         (function(player) {
             var now = squishy.getCurrentTimeMillis();
             var timeSinceLastAction = now - player.lastActionTime;
-            var remainingDelay = player.game.playerActionDelay - timeSinceLastAction;
+            var remainingDelay = arguments.length == 1 ? player.game.playerActionDelay - timeSinceLastAction : delay;
             
             if (player.eventTimer || remainingDelay > 0) {
                 // queue action

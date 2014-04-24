@@ -1,10 +1,22 @@
 This file contains some implementation details.
 
+
+TODO
+    - Proper console support when none is available (especially in mobile browsers)
+        - Console methods: http://stackoverflow.com/questions/55633/where-is-the-console-api-for-webkit-safari
+        - Error notifications
+            - Browser: window.onerror
+            - Node: http://stackoverflow.com/questions/4213351/make-node-js-not-exit-on-error
+        - Cross browser console:
+            - http://patik.com/blog/complete-cross-browser-console-log/
+    - Node backend:
+        - Recover from errors: http://stackoverflow.com/questions/8114977/recover-from-uncaught-exception-in-node-js?lq=1
+        - Use Apache as a proxy for Node: http://ronenagranat.blogspot.tw/2011/02/apache2-reverse-proxy-for-nodejs.html
     
 Installation
     - TODO: Currently no installation is required
     - Install Node.js
-    - Install MySQL
+    - Install MySQL?
         - http://www.bluecrownsoftware.com/article/271/Installing-MySQL-without-Root-Access-on-Linux
     - 
     
@@ -14,5 +26,10 @@ Research
         - http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=6293120&url=http%3A%2F%2Fieeexplore.ieee.org%2Fxpls%2Fabs_all.jsp%3Farnumber%3D6293120
     
     
-Possible game engines to look into:
-    - Gamvas: https://www.93i.de/products/software/gamvas/download
+Game engines:
+    - Gamvas
+        - https://www.93i.de/products/software/gamvas/download
+    - Arcade.io
+    - MelonJs
+    - Quintus
+        - No proper MVC separation

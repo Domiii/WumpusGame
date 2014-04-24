@@ -1,5 +1,5 @@
 /**
- * This file contains the definition of the game's UI.
+ * This file defines the game UI.
  */
 "use strict";
 
@@ -19,8 +19,9 @@ var dependencies = [
     // JQuery & jQuery Mobile
     "jquery", "jqm",
     
-    // Other UI elements
+    // Other UI stuff
     "./Notifier",
+    "Lib/mousetrap.min",
 
     // Non-UI stuff
     "Localizer"
@@ -35,8 +36,8 @@ define(dependencies, function() {
       * @param {wumpusGame.WumpusUI.Visibility} [config.visibility] Determines what the player can see.
       * @param {Element} [config.gameEl] The top-level game container.
       * @param {Element} [config.playerEl] The element that represents the player.
-      * @param {Element} [config.toolsEl] The element that represents the tools bar.
-      * @param {Element} [config.footerEl] The element that represents footer.
+      * @param {Element} [config.headerEl] The element that represents the toolbar.
+      * @param {Element} [config.footerEl] The element that represents the footer.
       * @param {Object} [config.gridUIConfig] Configures the grid UI.
       * @param {Object} [config.scriptEditorUIConfig] Configures the ScriptEditor.
       */
@@ -45,7 +46,8 @@ define(dependencies, function() {
         squishy.assert(game, "game is not defined.");
         squishy.assert(config.gameEl, "config.gameEl is not defined.");
         squishy.assert(config.playerEl, "config.playerEl is not defined.");
-        squishy.assert(config.toolsEl, "config.toolsEl is not defined.");
+        squishy.assert(config.headerEl, "config.headerEl is not defined.");
+        squishy.assert(config.footerEl, "config.footerEl is not defined.");
         //squishy.assert(config.footerEl, "config.footerEl is not defined.");
         squishy.assert(config.gridUIConfig, "config.gridUIConfig is not defined.");
         squishy.assert(config.scriptEditorUIConfig, "config.scriptUIConfig is not defined.");
@@ -55,10 +57,13 @@ define(dependencies, function() {
         this.game = game;
         this.gameEl = $(config.gameEl);
         this.playerEl = $(config.playerEl);
-        this.toolsEl = $(config.toolsEl);
+        this.headerEl = $(config.headerEl);
+        this.footerEl = $(config.footerEl);
         this.scriptEditor = wumpusGame.makeScriptEditorUI(this, config.scriptEditorUIConfig);
         this.gridUI = wumpusGame.makeGridUI(this, config.gridUIConfig);
+        
         this.infoTimeout = config.infoTimeout;
+        this.footerVisible = this.footerEl.css("display") !== "none";
         
         // divs need tabindex to be focusable (see: http://stackoverflow.com/questions/5965924/jquery-focus-to-div-is-not-working)
         this.gridUI.attr("tabindex", 1);
@@ -80,9 +85,11 @@ define(dependencies, function() {
         this.setupGameEventListeners();
         this.setupScriptEventListeners();
         
-        // go go go
-        this.initMousetrap(this.initCommands.bind(this));
+        // add elements to UI
+        //this.bindMousetrapTo(this.gameEl, this.initCommands.bind(this));
+        this.initCommands();
         this.initLanguage();
+        this.initLayout();          // compute layout and register necessary bindings
     };
 
     
@@ -110,25 +117,51 @@ define(dependencies, function() {
 
     // methods
     wumpusGame.WumpusUI.prototype = {
+        /**
+         * Whether the page is already loaded.
+         */
+        isPageLoaded: function() { return $.mobile && $.mobile.activePage; },
+        
+        getActivePage: function() { return $.mobile.activePage; },
+        
+        /**
+         * Whether the script editor is currently focused.
+         */
+        isEditorFocused: function() {
+            // uses a simple heuristic based on the assumption that the script editor is the only textarea in the DOM.
+            var focused = $(':focus');
+            return (focused[0] && focused[0].type === "textarea");
+        },
+    
     
         // #######################################################################################################################
         // Initialization
         
         /**
-         * Do a little trick with mousetrap, to prevent it from registering global events, and instead only register it with the given container.
+         * Do a little trick with mousetrap, to prevent it from registering global events, and instead only register it with the given element.
          */
-        initMouseTrap: function(onSuccess) {
-            var ui = this;
-            jQuery.get("Lib/mousetrap.min", function(code) {
-                var document = ui.gameEl;
-                eval(code);
-                
-                // Call success callback
-                onSuccess();
-            }).fail(function() {
-                squishy.assert(false, "Failed to load Mousetrap: " + squishy.objToString(arguments));
-            });
-        },
+        // bindMousetrapTo: function(element, onSuccess) {
+            // var ui = this;
+            // squishy.assert(!this.mousetrapLoaded, "Tried to use mousetrap to bind to more than one container. That functionality is currently not supported.");
+            // if (!this.mousetrapLoaded) {
+                // squishy.assert(!this.mousetrapLoading, "Tried to bind a second mousetrap container while mousetrap is still loading. That functionality is currently not supported.");
+                // this.mousetrapLoading = true;
+                // $.get("lib/mousetrap.js", function(code) {
+                    // this.mousetrapLoaded = true;
+                    // this.mousetrapLoading = false;
+                    
+                    // // little mousetrack hack (it binds everything to document)
+                    // var document = element;
+                    // var define = null;
+                    // eval(code);
+                    
+                    // // Call success callback
+                    // onSuccess();
+                // }).fail(function() {
+                    // squishy.assert(false, "Failed to load Mousetrap: " + squishy.objToString(arguments));
+                // });
+            // }
+        // },
         
         /**
          * Guess language, based on what server determined to be good for this client.
@@ -157,67 +190,91 @@ define(dependencies, function() {
                     description: "Agent turns counter-clockwise, 90 degrees.",
                     displayName: "",
                     displayIcon: "arrow-l",
-                    keyboard: "left",
+                    keydown: "left",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                        this.game.player.performActionNow(wumpusGame.PlayerAction.TurnCounterClockwise);
                     }
                 },
                 forward: {
                     prettyName: "Forward",
                     description: "Agent takes one step forward.",
                     displayName: "",
-                    displayIcon: "arrow-l",
-                    keyboard: "up",
+                    displayIcon: "arrow-u",
+                    keydown: "up",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
+                        this.game.player.performActionNow(wumpusGame.PlayerAction.Forward);
                     }
                 },
                 turncw: {
                     prettyName: "Right",
                     description: "Agent turns clockwise, 90 degrees.",
-                    keyboard: "right",
+                    displayName: "",
+                    displayIcon: "arrow-r",
+                    keydown: "right",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
+                        this.game.player.performActionNow(wumpusGame.PlayerAction.TurnClockwise);
                     }
                 },
                 backward: {
                     prettyName: "Back",
                     description: "Agent takes one step backward.",
-                    keyboard: "down",
+                    displayName: "",
+                    displayIcon: "arrow-d",
+                    keydown: "down",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
+                        this.game.player.performActionNow(wumpusGame.PlayerAction.Backward);
                     }
                 },
                 exit: {
                     prettyName: "Exit",
                     description: "Agent exits the dungeon (when on exit).",
-                    keyboard: "e",
+                    //displayName: "Exit Dungeon",
+                    displayIcon: "action",
+                    keydown: "e",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                        this.game.player.performActionNow(wumpusGame.PlayerAction.Exit);
                     }
                 },
                 run: {
                     prettyName: "Run",
                     description: "Reset game and execute the current user script.",
-                    keyboard: "x",
+                    displayName: "Run",
+                    displayIcon: "gear",
+                    keydown: "x",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                        this.runUserScript();
                     }
                 },
                 restart: {
                     prettyName: "Restart",
                     description: "Restart game.",
-                    keyboard: "r",
+                    displayName: "Restart",
+                    displayIcon: "refresh",
+                    keydown: "r",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                        this.game.restart();
                     }
                 },
                 stop: {
                     prettyName: "Stop",
                     description: "Stops currently queued actions.",
-                    keyboard: "r",
+                    displayName: "Stop",
+                    displayIcon: "delete",
+                    keydown: "s",
                     callback: function() {
-                        this.game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
+                        this.game.player.stopPlayer();
+                    }
+                },
+                
+                // TODO: Do this properly
+                help: {
+                    prettyName: "Help",
+                    description: "Displays help.",
+                    displayName: "Help",
+                    displayIcon: "heart",
+                    keydown: "h",
+                    callback: function() {
+                        this.toggleHelp();
                     }
                 }
             });
@@ -225,16 +282,14 @@ define(dependencies, function() {
             // switch between game and editor
             Mousetrap.bind(["esc", "ctrl+shift+s"], function() {
                 // determine what is currently in focus
-                var focused = $(':focus');
-                var editorFocused = (focused[0] && focused[0].type === "textarea");
-                
-                if (editorFocused) {
+                // TODO: Does not currently not trigger while in editor
+                if (this.isEditorFocused()) {
                     this.gridUI.focus();                // focus on grid
                 }
                 else {
                     this.scriptEditor.focus();          // focus on editor
                 }
-            }.bind(this));
+            }.bind(this), "keydown");
             
             // add to toolbar and register keyboard events
             Command.addCommandsToToolbar(commandMap);
@@ -247,8 +302,39 @@ define(dependencies, function() {
         /**
          * Determines the layout type and then layouts the entire UI correspondingly.
          */
-        resetLayout: function() {
-            // curently, does nothing
+        initLayout: function() {
+            var doInit = function(){
+                // re-build page after editing the HTML
+                this.getActivePage().trigger('create');
+                this.getActivePage().trigger('pagecreate');
+                
+                this.fillPage();
+        
+                $(window).on("resize orientationchange", function(){
+                    this.fillPage();
+                }.bind(this))
+            }.bind(this);
+            
+            if (!this.isPageLoaded()) {
+                $(document).on( "pagecontainershow", doInit);
+            }
+            else {
+                doInit();
+            }
+        },
+        
+        /**
+         * Resizes content to fill out the entire page.
+         */
+        fillPage: function() {
+            // TODO: Support tall-screen and small screens
+            // wide-screen:
+            scroll(0, 0);
+            var content = $("[data-role=content]");
+            var footerHeight = this.footerVisible ? this.footerEl.outerHeight() : 0;
+            var contentHeight = $.mobile.getScreenHeight() - this.headerEl.outerHeight() - footerHeight - content.outerHeight() + content.height();
+            content.height(contentHeight);
+            this.updateChildLayout();
         },
 
         /**
@@ -293,7 +379,7 @@ define(dependencies, function() {
                 display: "block",
                 left : "0px", 
                 top : "0px",
-                zIndex : "-1000",
+                zIndex : "1",
                 position : "absolute"
             });
             this.playerEl.outerWidth(w, true);     // width includes margin
@@ -445,6 +531,21 @@ define(dependencies, function() {
                 
                 ui.scriptNotifications.error(info, "ERROR: " + message, true);
             });
+        },
+        
+        
+            
+        // ###############################################################################################################################################################
+        // Help system
+        // TODO: Produce a proper help system
+        
+        /**
+         *
+         */
+        toggleHelp: function() {
+            this.footerEl.fadeToggle('fast');
+            this.footerVisible = !this.footerVisible;
+            this.fillPage();
         }
     };
     
@@ -472,6 +573,8 @@ define(dependencies, function() {
             // prototype
             setOwner: function(owner) { this.owner = owner; },
             run: function() {
+                // all commands are currently for the game, not for the script editor
+                if (this.owner.isEditorFocused()) return;
                 squishy.assert(this.owner, "You forgot to call UICommand.setOwner or Command.createCommandMap.");
                 this.callback.apply(this.owner, arguments);  // call call back on UI object with all arguments passed as-is
             }
@@ -497,17 +600,41 @@ define(dependencies, function() {
      * Appends one button per command to the given toolbar.
      * If toolbar not given, will append to jQuery Mobile header instead.
      */
-    Command.addCommandsToToolbar = function(commandMap, toolbar, buttonCSS) {
+    Command.addCommandsToToolbar = function(commandMap, toolbar) {            
+        if (!toolbar || !toolbar.length) {
+            toolbar = $("[data-role=header]");
+            squishy.assert(toolbar && toolbar.length, "toolbar was not given, and document does not have header.");
+        }
+        
+        // create navbar
+        var navbarEl = $("<div>");
+        //navbarEl.attr("data-role", "navbar");
+        //var listEl = $("<ul>");
+        //navbarEl.append(listEl);
+        //toolbar.append(navbarEl);
+        
+        // see: http://stackoverflow.com/questions/6161377/more-than-5-items-per-line-in-jquery-mobile-navbar
+        // var itemCSS = {
+            // "width": "3% !important",  /* 12.5% for 8 tabs wide */
+            // "clear": "none !important"  /* Prevent line break caused by ui-block-a */
+        // };
+        
+        var buttonCSS = {
+            "margin" : "0px !important"
+        };
+        
         squishy.forEachOwnProp(commandMap, function(name, cmd) {
-            var button = $("<a data-role=button>");
-            button.text(cmd.displayName);
+            //var itemEl = $("<li>");
+            //itemEl[0].style = "width: 3% !important;";
+            var button = $("<a>");
+            //button.text(cmd.displayName && cmd.displayName.length > 0 ? cmd.displayName : " ");
             button.attr("title", cmd.description);
+            button.attr("data-role", "button");
             if (cmd.displayIcon) {
                 button.attr("data-icon", cmd.displayIcon);
+                button.attr("data-iconpos", "top");
             }
-            if (buttonCSS) {
-                button.css(buttonCSS);
-            }
+            button.attr("style", "margin: 0px !important; width: 3em;");//.css(buttonCSS);
             
             // arguments to run() will be the event data
             var eventHandler = cmd.run.bind(cmd);
@@ -520,13 +647,10 @@ define(dependencies, function() {
             if (cmd.keyup && cmd.keyup.length > 0) {
                 Mousetrap.bind(cmd.keyup, eventHandler, 'keyup');
             }
-            
-            if (!toolbar || !toolbar.length) {
-                toolbar = $("[data-role=header]");
-                squishy.assert(toolbar.length, "toolbar was not given, and document does not have header.");
-            }
+            // itemEl.append(button);
+            // listEl.append(itemEl);
             toolbar.append(button);
-        });
+        }.bind(this));
     };
     
     return wumpusGame;

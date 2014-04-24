@@ -20,7 +20,7 @@ require.config({
         
         jquery_root: "lib/jquery",
         jquery: "lib/jquery/jquery-2.1.0.min",
-        jqm: "lib/jquery/jquery.mobile-1.4.2.min.js"
+        jqm: "lib/jquery_mobile/jquery.mobile-1.4.2.min"
     },
     shim: {
         jquery: { exports: '$' },
@@ -40,7 +40,8 @@ require(["Squishy"], function() { require(["js/GameLoader"], function(game) { re
     var gameEl = squishy.getElementByIdOrDie("wumpus-game");
     var gridEl = squishy.getElementByIdOrDie("wumpus-grid");
     var playerEl = squishy.getElementByIdOrDie("wumpus-player");
-    var toolsEl = squishy.getElementByIdOrDie("wumpus-tools");
+    var headerEl = $("[data-role=header]");
+    var footerEl = $("[data-role=footer]");
     var tileElTemplate = squishy.getElementByIdOrDie("wumpus-grid-tile");
     var scriptEditorEl = squishy.getElementByIdOrDie("script-editor");
     
@@ -48,7 +49,8 @@ require(["Squishy"], function() { require(["js/GameLoader"], function(game) { re
         visiblity : wumpusGame.WumpusUI.Visibility.Visited,    // only display visited tiles
         gameEl : gameEl,
         playerEl : playerEl,
-        toolsEl : toolsEl,
+        headerEl : headerEl,
+        footerEl : footerEl,
         infoTimeout: 3000,                    // time in milliseconds until a notification fades
             
         // configure the grid UI
@@ -67,40 +69,6 @@ require(["Squishy"], function() { require(["js/GameLoader"], function(game) { re
     
     // create UI
     var ui = new wumpusGame.WumpusUI(game, uiConfig);
-    
-    // re-compute layout and style
-    ui.resetLayout();
-    
-    // ####################################################################################################
-    // setup buttons
-
-    var runScriptBtn = squishy.getElementByIdOrDie("wumpus-run");
-    squishy.onClick(runScriptBtn, function(evt) {
-        ui.runUserScript();
-    });
-    squishy.onClick("wumpus-restart", function(evt) {
-        ui.game.restart();
-    });
-    
-    squishy.onClick("wumpus-forward", function(evt) {
-        game.player.performActionDelayed(wumpusGame.PlayerAction.Forward);
-    });
-    squishy.onClick("wumpus-backward", function(evt) {
-        game.player.performActionDelayed(wumpusGame.PlayerAction.Backward);
-    });
-    squishy.onClick("wumpus-turncw", function(evt) {
-        game.player.performActionDelayed(wumpusGame.PlayerAction.TurnClockwise);
-    });
-    squishy.onClick("wumpus-turnccw", function(evt) {
-        game.player.performActionDelayed(wumpusGame.PlayerAction.TurnCounterClockwise);
-    });
-    squishy.onClick("wumpus-exit", function(evt) {
-        game.player.performActionDelayed(wumpusGame.PlayerAction.Exit);
-    });
-    
-    squishy.onClick("wumpus-stop", function(evt) {
-        game.player.stopPlayer();
-    });
     
 
     // ####################################################################################################

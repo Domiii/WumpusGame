@@ -31,6 +31,10 @@ wumpusGame.makeGridUI = function(gameUI, config) {
     
     // #################################################################################
     // GridUI initialization
+    
+    // fix Grid style
+    
+    // add tiles
     var grid = gameUI.game.grid;
     
     gridUI.tileElements = squishy.createArray(grid.height);
@@ -165,11 +169,12 @@ wumpusGame.createTileElement = function(gridUI, tile) {
             var text = tile.getContentString();
             var w = tileEl.innerWidth();
             var shortText = squishy.truncateText(text, "14px arial", w);
-            this.textCont =  this.textCont || $(document.createElement("div"));
-            this.textCont.css("position", "absolute");
-            this.textCont[0].innerHTML = shortText;
-            if (!this.textCont[0].parentNode) {
-                tileEl[0].appendChild(this.textCont[0]);
+            var textCont = this.textCont = this.textCont || $(document.createElement("div"));
+            textCont.css("position", "absolute");
+            textCont.css("z-index", "3");
+            textCont[0].innerHTML = shortText;
+            if (!textCont[0].parentNode) {
+                tileEl[0].appendChild(textCont[0]);
             }
             tileEl.attr("title", text);
         }

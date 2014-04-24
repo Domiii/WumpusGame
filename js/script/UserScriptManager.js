@@ -1,5 +1,5 @@
 /**
- *
+ * This class manages scripts written and displayed in the browser, and allows connecting errors to their source. This is similar to what the core of an IDE does.
  */
 "use strict";
 

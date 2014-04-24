@@ -5,38 +5,61 @@
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<title>Wumpus.js</title>
     <link rel="shortcut icon" href="img/wumpus.png">
-	
-    <link rel="stylesheet" type="text/css" href="lib/jquery/jquery.mobile-1.4.2.min.css" />
+    
+    <link rel="stylesheet" type="text/css" href="lib/jquery_mobile/jquery.mobile-1.4.2.min.css" />
 	
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/defaultstyle.css" />
+    <style>
+        li.ui-block-a {
+            width:10% !important;
+            clear: none !important;  /* Prevent line break caused by ui-block-a */
+        }
+        li.ui-block-b {
+            width:10% !important;
+            clear: none !important;  /* Prevent line break caused by ui-block-a */
+        }
+    </style>
 </head>
 
 
 
 <body>
-    <!-- The game container -->
-	<div id="wumpus-game" data-role="page">
+    <!-- The page -->
+	<div id="wumpus-game" data-role="page" data-theme="a">
         <!-- Toolbar -->
 		<div data-role="header">
 		</div>
         
         <!-- Content -->
-        <div data-role="content" style="padding:6px">
-            <!-- The actual game Grid -->
-            <div id="wumpus-grid">
-            </div>
-            
-            <!-- Script editor -->
-            <div id="script-editor-container">
-                <div id="script-editor"></div>
+        <div data-role="content" style="padding:0px; text-shadow:0 0 0;">
+            <div class="ui-grid-a" style="height: 100%;">
+                <!-- Game UI -->
+                <div class="ui-block-a" style="height: 100%; overflow: auto; position:relative;" id="wumpus-grid">
+                </div>
+                
+                <!-- Script editor -->
+                <div class="ui-block-b" style="height: 100%; position:relative;" id="script-editor-container">
+                    <div id="script-editor"></div>
+                </div>
             </div>
 		</div>
         
         <!-- footer -->
-        <!-- <div data-role="footer">
-            <h4>My Footer</h4>
-        </div> -->
+        <div data-role="footer" style="display:none">
+            <!-- Rudimentary help & info -->
+            <u>Help</u>
+            <p><a href="https://github.com/ajaxorg/ace/wiki/Default-Keyboard-Shortcuts">ACE editor keyboard shortcuts</a></p>
+            
+            <u>Wumpus Game for Learning AI</u>
+            <p>This is an online version of the 1972 game <a href="http://en.wikipedia.org/wiki/Hunt_the_Wumpus">Hunt the Wumpus</a>, but with automation capabilities.
+            This work has been inspired by the book <a href="http://aima.cs.berkeley.edu/">Artificial Intelligence: A Modern Approach</a> which uses the Wumpus world in many of its examples.</p>
+            
+            <!-- Give credit where credit is due -->
+            <u>Credit</u>
+            <p>Created by Dominik Seifert, National Taiwan University.</p>
+            <p>some of the imagery was created by Mark Proctor. Check out <a href="http://blog.athico.com/2012/01/wumpus-world.html">his blog here</a>.</p>
+        </div>
 	</div>
     
     <!-- The player element  -->
@@ -46,24 +69,6 @@
     <!-- Any tile in the grid will be a copy of this element -->
     <div id="wumpus-grid-tile" class="tile" style="display:none;">
     </div>
-    
-    
-    <!-- Explain the background -->
-    <div>
-        <h3>Wumpus Game for Learning AI</h3>
-        <p>This is an online version of the 1972 game <a href="http://en.wikipedia.org/wiki/Hunt_the_Wumpus">Hunt the Wumpus</a>, but with automation capabilities.
-        <p>This work has been inspired by the book <a href="http://aima.cs.berkeley.edu/">Artificial Intelligence: A Modern Approach</a> which uses the Wumpus world in many of its examples.
-        <p>
-        
-        <h3>Help</h3>
-        <p><a href="https://github.com/ajaxorg/ace/wiki/Default-Keyboard-Shortcuts">ACE editor keyboard shortcuts</a>
-        <p>
-        
-        <!-- Give credit where credit is due -->
-        <h3>Credit</h3>
-        <p>Created by Dominik Seifert, National Taiwan University.
-        <p>some of the imagery was created by Mark Proctor. Check out <a href="http://blog.athico.com/2012/01/wumpus-world.html">his blog here</a>.
-	</div>
     
     <!-- Start loading game -->
     <script data-main="js/AppStarter.js" src="lib/require.js"></script>
