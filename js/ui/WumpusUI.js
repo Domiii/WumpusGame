@@ -72,13 +72,18 @@ define(dependencies, function() {
         // load default user code
         var This = this;
         jQuery.ajax({
-            url: 'js/user/DefaultUserCode.js'}
+            url: 'js/user/DefaultUserCode.js',
+            dataType: 'text',
+            error: function (xhr, ajaxOptions, thrownError) {
+                var errorStr = 'Status = ' + xhr.statusText + ' (' + xhr.status + ')' + '\n';
+                errorStr += 'Response length = ' + (xhr.responseText || "").length + '\n';
+                errorStr += 'Error = ' + (thrownError && thrownError.stack || thrownError) + '\n';
+
+                console.log(errorStr);
+            }
         })
         .done(function(code) {
             This.scriptEditor.setValue(code, -1);
-        })
-        .fail(function(jqXHR, textStatus ) {
-            console.warn("Failed to load default user code: " + textStatus);
         });
         
         // create notification lists
