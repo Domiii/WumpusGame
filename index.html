@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Misc -->
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<title>Wumpus.js</title>
+    <link rel="shortcut icon" href="img/wumpus.png">
+    
+    <link rel="stylesheet" type="text/css" href="lib/jquery_mobile/jquery.mobile-1.4.2.min.css" />
+	
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="css/defaultstyle.css" />
+    <style>
+        li.ui-block-a {
+            width:10% !important;
+            clear: none !important;  /* Prevent line break caused by ui-block-a */
+        }
+        li.ui-block-b {
+            width:10% !important;
+            clear: none !important;  /* Prevent line break caused by ui-block-a */
+        }
+    </style>
+</head>
+
+
+
+<body>
+    <!-- The page -->
+	<div id="wumpus-game" data-role="page" data-theme="a">
+        <!-- Toolbar -->
+		<div data-role="header">
+		</div>
+        
+        <!-- Content -->
+        <div data-role="content" style="padding:0px; text-shadow:0 0 0;">
+            <div class="ui-grid-a" style="height: 100%;">
+                <!-- Game UI -->
+                <div class="ui-block-a" style="height: 100%; overflow: auto; position:relative;" id="wumpus-grid">
+                </div>
+                
+                <!-- Script editor -->
+                <div class="ui-block-b" style="height: 100%; position:relative;" id="script-editor-container">
+                    <div id="script-editor"></div>
+                </div>
+            </div>
+		</div>
+        
+        <!-- footer -->
+        <div data-role="footer" style="display:none;">
+            <!-- Rudimentary help & info -->
+            <h2 style="text-align:left;">Programmable Wumpus Game</h2>
+            <div style="font-size:11px; padding-left: 20px;">
+                <p>This is an online version of the 1972 game <a href="http://en.wikipedia.org/wiki/Hunt_the_Wumpus">Hunt the Wumpus</a>, but with automation capabilities.
+                This work has been inspired by the book <a href="http://aima.cs.berkeley.edu/">Artificial Intelligence: A Modern Approach</a> which uses the Wumpus world in many of its examples.</p>
+                
+                <!-- Give credit where credit is due -->
+                <u>Credit</u>
+                <p>Created by Dominik Seifert, National Taiwan University.</p>
+                <p>some of the imagery was created by Mark Proctor. Check out <a href="http://blog.athico.com/2012/01/wumpus-world.html">his blog here</a>.</p>
+            </div>
+
+            <h2 style="text-align:left;">Help</h2>
+            <div style="font-size:11px; padding-left: 20px;">
+                <ul>
+                    <li><a href="https://github.com/ajaxorg/ace/wiki/Default-Keyboard-Shortcuts">ACE editor keyboard shortcuts</a></li>
+                    <li>TODO...</li>
+                </ul>
+            </div>
+            
+        </div>
+	</div>
+    
+    <!-- The player element  -->
+    <div id="wumpus-player" class="player" style="display:none;">
+    </div>
+    
+    <!-- Any tile in the grid will be a copy of this element -->
+    <div id="wumpus-grid-tile" class="tile" style="display:none;">
+    </div>
+    
+    <!-- Start loading game -->
+    <script data-main="js/AppStarter.js" src="lib/require.js"></script>
+</body>
+
+</html>

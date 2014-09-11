@@ -1,0 +1,10 @@
+log/*
+*.log
+
+tmp
+
+node_modules/*
+
+*.sublime-workspace
+
+private_notes.txt

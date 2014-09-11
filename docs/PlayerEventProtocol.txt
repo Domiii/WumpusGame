@@ -1,0 +1,56 @@
+# This file describes the CFG of the WumpusGame's event protocol
+
+        GameStart: 1,       // game started (args: score, playerX, playerY, playerDirection, visitedTiles)
+        Move: 1,            // player moved to new tile (args: firstVisit, pos, tileContents)
+        Turn: 2,            // player changed direction (args: direction)
+        GrabGold: 3,        // player grabbed gold (args: scoreDelta)
+        Teleport: 4,        // bats dropped player off somewhere (args: playerX, playerY)
+        ShootArrow: 5,      // player shoots arrow (args: )
+        ArrowHitWumpus: 6,  // player hears scream, indicating that Wumpus died (args: )
+        ArrowMissed: 7,     // arrow missed (args: )
+        DeadPit: 8,         // player fell into a pit (args: )
+        DeadWumpus: 9,      // dead through Wumpus (args: )
+        Exit: 10            // player exited the Wumpus dungeon (args: )
+
+# Symbols
+
+S = GameStart        
+m = Move
+t = Turn
+g = GrabGold
+Bats = Teleport (by Bats)
+a = ShootArrow
+am = ArrowMissed
+ah = ArrowHitWumpus
+dp = DeadPit
+dw = DeadWumpus
+w = Exit
+
+
+# Complete grammar
+
+# Start symbol
+S ->            NewTile eof
+
+# Player just moved to new tile: Same as though we are on an old tile, but with some added element of surprises
+NewTile ->        OldTile
+                | Bats
+                | dp 
+                | dw
+                | g OldTile
+                
+# Player moves: Either lands on a visited or not yet visited tile
+PlayerMove ->     m NewTile
+                | m OldTile
+
+# Bat teleport is basically the same as a player move (however, the target can be a non-neighboring tile, but this grammar is not expressive enough for that subtilty)
+Bats ->           PlayerMove
+
+# Player moved to or is still on (e.g. after turning) an already visited tile
+OldTile ->        PlayerMove
+                | t OldTile
+                | a Shot 
+                | e
+
+# Player shot arrow -> As a result, they either hit or miss
+Shot -> am OldTile | ah OldTile
