@@ -70,10 +70,15 @@ define(dependencies, function() {
         $(this.scriptEditor).attr("tabindex", 2);
         
         // load default user code
-        jQuery.get('js/user/DefaultUserCode.js', function(code) {
-            this.scriptEditor.setValue(code, -1);
-        }.bind(this)).fail(function() {
-            console.warn("Failed to load default user code: " + squishy.objToString(arguments));
+        var This = this;
+        jQuery.ajax({
+            url: 'js/user/DefaultUserCode.js'}
+        })
+        .done(function(code) {
+            This.scriptEditor.setValue(code, -1);
+        })
+        .fail(function(jqXHR, textStatus ) {
+            console.warn("Failed to load default user code: " + textStatus);
         });
         
         // create notification lists
