@@ -183,7 +183,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
         
         this.lastActionTime = squishy.getCurrentTimeMillis();
         
-        var actionHappened = true;
+        var actionHappened = false;
     
         switch (action) {
             case wumpusGame.PlayerAction.Forward:
@@ -191,9 +191,7 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 if (neighborTile) {
                     // move player to new tile
                     this.movePlayer(neighborTile.getTilePosition());
-                }
-                else {
-                    actionHappened = false;
+                    actionHappened = true;
                 }
                 break;
             case wumpusGame.PlayerAction.Backward:
@@ -201,30 +199,33 @@ define(["./WumpusGame.Def"], function(wumpusGame) {
                 if (neighborTile) {
                     // move player to new tile
                     this.movePlayer(neighborTile.getTilePosition());
-                }
-                else {
-                    actionHappened = false;
+                    actionHappened = true;
                 }
                 break;
             case wumpusGame.PlayerAction.TurnClockwise:
                 // update direction
                 this.setDirection(wumpusGame.Direction.getTurnedDirection(this.direction, true));
+                actionHappened = true;
                 break;
             case wumpusGame.PlayerAction.TurnCounterClockwise:
                 // update direction
                 this.setDirection(wumpusGame.Direction.getTurnedDirection(this.direction, false));
+                actionHappened = true;
                 break;
             case wumpusGame.PlayerAction.Exit:
                 if (this.getTile().hasObject(wumpusGame.ObjectTypes.Entrance)) {
                     this.game.triggerPlayerEvent(this, wumpusGame.PlayerEvent.Exit);
-                }
-                else {
-                    actionHappened = false;
+                    actionHappened = true;
                 }
                 break;
             default:
                 squishy.assert(false, "Invalid player action");
                 break;
+        }
+
+        if (!actionHappened) {
+            // nothing happened
+            this.game.triggerPlayerEvent(this, wumpusGame.PlayerEvent.Nothing, {});
         }
         
         // remember action

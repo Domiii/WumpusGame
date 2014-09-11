@@ -145,6 +145,9 @@ define(["./WumpusGame.Def", "./Tile", "./Grid",  "./Player", "./GameScriptContex
         
             // handle event
             switch (eventId) {
+                case wumpusGame.PlayerEvent.Nothing:
+                    // an action probably failed
+                    break;
                 case wumpusGame.PlayerEvent.GameStart:
                     // produce array of all visited tiles
                     var visitedTiles = [];
